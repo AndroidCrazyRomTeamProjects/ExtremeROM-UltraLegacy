@@ -1,9 +1,13 @@
 name: Update prebuilt blobs
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 12 * * *"
+    - cron: "0 12 * * 1"
 
 jobs:
   update:
@@ -17,6 +21,8 @@ jobs:
             path: "prebuilts/samsung/a26xxx"
           - module: "Galaxy A73 (a73xqxx)"
             path: "prebuilts/samsung/a73xqxx"
+          - module: "Galaxy S22 Ultra (b0sxxx)"
+            path: "prebuilts/samsung/b0sxxx"
           - module: "Galaxy Flip 6 (b6qxxx)"
             path: "prebuilts/samsung/b6qxxx"
           - module: "Galaxy S23 Ultra (dm3qxxx)"
@@ -29,10 +35,10 @@ jobs:
             path: "prebuilts/samsung/gts10fewifixx"
           - module: "Galaxy S21 Ultra (p3sxxx)"
             path: "prebuilts/samsung/p3sxxx"
+          - module: "Galaxy S25 Ultra (pa3qxxx)"
+            path: "prebuilts/samsung/pa3qxxx"
           - module: "Galaxy S25 Ultra (China) (pa3qzcx)"
             path: "prebuilts/samsung/pa3qzcx"
-          - module: "Galaxy S22 (r0qxxx)"
-            path: "prebuilts/samsung/r0qxxx"
           - module: "Galaxy S24 FE (r12sxxx)"
             path: "prebuilts/samsung/r12sxxx"
 
@@ -47,7 +53,6 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           sudo docker image prune --all --force
           sudo docker builder prune -a
-
       - name: Free disk space (2/3)
         uses: jlumbroso/free-disk-space@main
         with:
@@ -68,7 +73,6 @@ jobs:
           sudo modprobe erofs f2fs
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
@@ -82,23 +86,25 @@ jobs:
           node-version: 'latest'
 
       - name: Build dependencies
-        run: source ./buildenv.sh z3s
+        run: source ./buildenv.sh STARLTE
 
       - name: Update prebuilt blobs
         run: |
-          source ./buildenv.sh z3s
+          source ./buildenv.sh STARLTE
           ./scripts/internal/update_prebuilt_blobs.sh ${{ matrix.path }}
-          echo "PDA_BUILD=$(cat ./${{ matrix.path }}/.current | cut -d "/" -f 1)" >> $GITHUB_ENV
-
+          echo "PDA_BUILD=$(cat ./${{ matrix.path }}/.current | cut -d \"/\" -f 1)" >> $GITHUB_ENV
+          # sanitize branch name (replace slashes with dashes)
+          echo "SAFE_BRANCH=$(echo '${{ matrix.path }}' | tr '/' '-')" >> $GITHUB_ENV
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.PAT_TOKEN || github.token }}
           add-paths: |
             ${{ matrix.path }}
           commit-message: '${{ matrix.path }}: update blobs to ${{ env.PDA_BUILD }}'
           committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
-          branch: '${{ matrix.path }}'
+          branch: 'update/${{ env.SAFE_BRANCH }}'
           delete-branch: true
           title: 'Update ${{ matrix.path }} blobs to ${{ env.PDA_BUILD }}'
-          body: ''
+          body: 'Pweese Merge lol'
