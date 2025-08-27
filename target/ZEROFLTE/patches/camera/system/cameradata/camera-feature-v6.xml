@@ -1,0 +1,128 @@
+<?xml version= "1.0" encoding= "UTF-8"?>
+<resources>
+    <!-- Shootingmode - BACK -->
+    <local name="CAMERA_SCREEN_FLASH_VI" value="false"/>
+
+    <!-- Shootingmode - BACK -->
+    <local name="BACK_CAMERA_SHOOTINGMODE_PANORAMA_SHOT" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_PRO" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_SELECTIVE_FOCUS" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_SLOW_MOTION" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_FAST_MOTION" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_VIRTUAL_SHOT" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_VIDEO_COLLAGE" value="true"/>
+    <local name="BACK_CAMERA_SHOOTINGMODE_LVB" value="true"/>
+
+    <!-- Shootingmode - FRONT -->
+    <local name="FRONT_CAMERA_SHOOTINGMODE_SELFIE" value="true"/>
+    <local name="FRONT_CAMERA_SHOOTINGMODE_WIDE_SELFIE" value="true"/>
+    <local name="FRONT_CAMERA_SHOOTINGMODE_VIRTUAL_SHOT" value="true"/>
+    <local name="FRONT_CAMERA_SHOOTINGMODE_VIDEO_COLLAGE" value="true"/>
+    <local name="FRONT_CAMERA_SHOOTINGMODE_LVB" value="true"/>
+
+    <!-- Capture resolution - BACK -->
+    <local name="BACK_CAMERA_RESOLUTION_16BY9_LARGE" value="5312x2988"/>
+    <local name="BACK_CAMERA_RESOLUTION_16BY9_MEDIUM" value="3264x1836"/>
+    <local name="BACK_CAMERA_RESOLUTION_4BY3_LARGE" value="3984x2988"/>
+    <local name="BACK_CAMERA_RESOLUTION_4BY3_MEDIUM" value="3264x2448"/>
+    <local name="BACK_CAMERA_RESOLUTION_1BY1_LARGE" value="2976x2976"/>
+    <local name="BACK_CAMERA_RESOLUTION_1BY1_MEDIUM" value=""/>
+    <local name="BACK_CAMERA_PICTURE_DEFAULT_RESOLUTION" value="5312x2988"/>
+
+    <!-- Capture resolution - FRONT -->
+    <local name="FRONT_CAMERA_RESOLUTION_16BY9_LARGE" value="2592x1458"/>
+    <local name="FRONT_CAMERA_RESOLUTION_4BY3_LARGE" value="2592x1944"/>
+    <local name="FRONT_CAMERA_RESOLUTION_1BY1_LARGE" value="1936x1936"/>
+    <local name="FRONT_CAMERA_PICTURE_DEFAULT_RESOLUTION" value="2592x1944"/>
+
+    <!-- Recording resolution - BACK -->
+    <local name="BACK_CAMERA_RECORDING_DEFAULT_RESOLUTION" value="1920x1080"/>
+    <local name="BACK_CAMERA_RECORDING_MIN_RESOLUTION" value="640x480"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_3840X2160" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_2560X1440" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1920X1080" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1920X1080_60FPS" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1280X720" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_640X480" value="true"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_176X144" value="true"/>
+
+    <!-- Recording resolution - FRONT -->
+    <local name="FRONT_CAMERA_RECORDING_DEFAULT_RESOLUTION" value="1920x1080"/>
+    <local name="FRONT_CAMERA_RECORDING_MIN_RESOLUTION" value="640x480"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_2560X1440" value="true"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1920X1080" value="true"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1280X720" value="true"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_640X480" value="true"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_176X144" value="true"/>
+
+
+    <!-- Recording snapshot - FRONT -->
+    <local name="FRONT_CAMCORDER_RESOLUTION_2560X1440_PICTURE_WIDTH" value="0"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_2560X1440_PICTURE_HEIGHT" value="0"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1920X1080_PICTURE_WIDTH" value="2592"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1920X1080_PICTURE_HEIGHT" value="1458"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1280X720_PICTURE_WIDTH" value="2592"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_1280X720_PICTURE_HEIGHT" value="1458"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_640X480_PICTURE_WIDTH" value="2592"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_640X480_PICTURE_HEIGHT" value="1944"/>
+
+    <!-- Recording snapshot - BACK -->
+    <local name="BACK_CAMCORDER_RESOLUTION_3840X2160_PICTURE_WIDTH" value="0"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_3840X2160_PICTURE_HEIGHT" value="0"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_2560X1440_PICTURE_WIDTH" value="0"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_2560X1440_PICTURE_HEIGHT" value="0"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1920X1080_PICTURE_WIDTH" value="5312"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1920X1080_PICTURE_HEIGHT" value="2988"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1280X720_PICTURE_WIDTH" value="5312"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_1280X720_PICTURE_HEIGHT" value="2988"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_640X480_PICTURE_WIDTH" value="3984"/>
+    <local name="BACK_CAMCORDER_RESOLUTION_640X480_PICTURE_HEIGHT" value="2988"/>
+
+    <local name="COVER_CAMCORDER_RESOLUTION_PICTURE_WIDTH" value="2976"/>
+    <local name="COVER_CAMCORDER_RESOLUTION_PICTURE_HEIGHT" value="2976"/>
+
+    <!-- Camcorder Preview Size -->
+    <local name="FRONT_CAMCORDER_RESOLUTION_2560X1440_PREVIEW_WIDTH" value="1920"/>
+    <local name="FRONT_CAMCORDER_RESOLUTION_2560X1440_PREVIEW_HEIGHT" value="1080"/>
+
+    <!-- Cover Camera Recording Resolution -->
+    <local name="COVER_CAMCORDER_RESOLUTION" value="1088x1088"/>
+    <local name="KEYBOARD_COVER_CAMCORDER_RESOLUTION" value="1088x1088"/>
+
+    <!--Multi AF -->
+    <local name="SUPPORT_MULTI_AF" value="false"/>
+
+    <!-- Rear lens distortion correction -->
+    <local name="REAR_LENS_DISTORTION_CORRECTION" value="false"/>
+
+    <!-- Motion Photo -->
+    <local name="SUPPORT_MOTION_PHOTO" value="false"/>
+
+    <!-- Video Stabilization -->
+    <local name="CAMCORDER_ANTISHAKE_DEFAULT_ON" value="false"/>
+    <local name="CAMCORDER_REAR_ANTISHAKE_QHD" value="false"/>
+    <local name="CAMCORDER_REAR_ANTISHAKE_FHD_60FPS" value="false"/>
+
+    <!-- Thermistor Temperature - Only JPN used -->
+    <local name="OVERHEAT_LIMITATION_TEMP" value="620"/>
+    <local name="OVERHEAT_AVAILABLE_TEMP" value="600"/>
+    <local name="FLASH_OVERHEAT_LIMITATION_TEMP" value="475"/>
+
+    <local name="BURST_PANORAMA_RESOLUTION" value="3264x1836"/>
+
+    <!-- SlowMotion FPS -->
+    <local name="CAMERA_SLOWMOTION_RECORDING_PREVIEW_FPS" value="120000"/>
+
+    <!-- Dual Flip photo -->
+    <local name="CAMERA_SUPPORT_FLIP_PHOTO" value="false"/>
+
+    <local name="FRONT_CAMERA_EFFECT_PREVIEW_FPS_MIN" value="10000"/>
+    <local name="CAMERA_EFFECT_PREVIEW_FPS_MIN" value="10000"/>
+    
+    <!-- Protection for ESD Test -->
+    <local name="SUPPORT_CAMERA_ESD_CHECK" value="true"/>
+    
+        <!-- ExtremeROM -->
+    <local name="SUPPORT_DEFAULT_HEVC" value="true"/>
+    <local name="SUPPORT_LOG_VIDEO" value="true"/>
+</resources>

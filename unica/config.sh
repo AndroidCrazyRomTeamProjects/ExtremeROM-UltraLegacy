@@ -16,9 +16,9 @@
 #
 
 # UN1CA configuration file
-ROM_VERSION="2.0.0"
-ROM_VERSION+="-$(git rev-parse --short HEAD)"
-ROM_CODENAME="Nexus"
+ROM_VERSION="V0.5 - rc1"
+ROM_VERSION+=""
+ROM_CODENAME="Ultra"
 
 # Source ROM firmware
 case "$TARGET_SINGLE_SYSTEM_IMAGE" in
