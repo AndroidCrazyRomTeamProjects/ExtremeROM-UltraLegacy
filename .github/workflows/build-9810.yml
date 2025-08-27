@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-      target: [STARLTE, STAR2LTE, CROWNLTE, R7N]
+        target: [STARLTE, STAR2LTE, CROWNLTE, R7N]
 
     steps:
 
@@ -57,7 +57,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-        node-version: latest
+          node-version: latest
 
       - name: Build dependencies
         run: source ./buildenv.sh ${{ matrix.target }}
