@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [M33X, M34X]
+        target: [M33X]
 
     steps:
       - name: Checkout repo
@@ -90,16 +90,7 @@ jobs:
         run: |
           ZIP_FILE=$(find out -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
-          if [[ "${{ matrix.target }}" == "M33X" ]]; then
-            FOLDER_ID="${{ secrets.GOFILE_FOLDER_ID_M33X }}"
-          elif [[ "${{ matrix.target }}" == "M34X" ]]; then
-            FOLDER_ID="${{ secrets.GOFILE_FOLDER_ID_M34X }}"
-          else
-            echo "Unknown target matrix!"
-            exit 1
-          fi
-
-          RESPONSE=$(curl -s -F "file=@$ZIP_FILE" -F "token=${{ secrets.GOFILE_TOKEN }}" -F "folderId=$FOLDER_ID" "https://upload-eu-par.gofile.io/uploadFile")
+          RESPONSE=$(curl -s -F "file=@$ZIP_FILE" -F "token=${{ secrets.GOFILE_TOKEN }}" -F "folderId=${{ secrets.GOFILE_FOLDER_ID_M33X }}" "https://upload-eu-par.gofile.io/uploadFile")
 
           echo "Uploaded successfully! Download link:"
           echo "$RESPONSE" | jq -r '.data.downloadPage'
