@@ -88,9 +88,22 @@ jobs:
 
       - name: Upload to GoFile
         run: |
-          ZIP_FILE=$(find out -maxdepth 1 -type f -name "*.zip" | head -n 1)
+          # Find the newest zip file in out/
+          ZIP_FILE=$(find out -type f -name "*.zip" -printf "%T@ %p\n" | sort -n | tail -1 | cut -d' ' -f2-)
 
-          RESPONSE=$(curl -s -F "file=@$ZIP_FILE" -F "token=${{ secrets.GOFILE_TOKEN }}" -F "folderId=${{ secrets.GOFILE_FOLDER_ID_M33X }}" "https://upload-eu-par.gofile.io/uploadFile")
+          if [ -z "$ZIP_FILE" ] || [ ! -f "$ZIP_FILE" ]; then
+            echo "No .zip file found in out/ directory!"
+            find out -type f -name "*.zip" || true
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP_FILE"
+          ls -lh "$ZIP_FILE"
+
+          RESPONSE=$(curl -s -F "file=@$ZIP_FILE" \
+            -F "token=${{ secrets.GOFILE_TOKEN }}" \
+            -F "folderId=${{ secrets.GOFILE_FOLDER_ID_M33X }}" \
+            "https://upload-eu-par.gofile.io/uploadFile")
 
           echo "Uploaded successfully! Download link:"
           echo "$RESPONSE" | jq -r '.data.downloadPage'
