@@ -20,7 +20,7 @@ cat << "EOF"
 |    / ____ \| |  | |_| \__ \ (_| | | | | | \ \| |__| | |  | |   |
 |   /_/    \_\_|   \__|_|___/\__,_|_| |_|_|  \_\\____/|_|  |_|   |
 |                                                                |        
-|                 ArtisanROM Ultra  V 0 . 1 . 1                  |          
+|                 ArtisanROM Ultra  V 0 . 5 . 0                  |          
 +================================================================+
 
 EOF
@@ -79,10 +79,11 @@ echo -e "  ${CYAN}CROWNLTE${NC}   → Samsung Galaxy Note9"
 echo -e "  ${CYAN}STAR2LTE${NC}   → Samsung Galaxy S9+"
 echo -e "  ${CYAN}STARLTE${NC}    → Samsung Galaxy S9"
 echo -e "  ${CYAN}R7N${NC}        → Samsung Galaxy Note10 Lite"
-echo -e "  ${CYAN}E1S${NC}       → Samsung Galaxy S24 (WIP)"
-echo -e "  ${CYAN}E2S${NC}       → Samsung Galaxy S24+ (WIP)"
+echo -e "  ${CYAN}E1S${NC}        → Samsung Galaxy S24 (WIP)"
+echo -e "  ${CYAN}E2S${NC}        → Samsung Galaxy S24+ (WIP)"
 echo -e "  ${CYAN}R12S${NC}       → Samsung Galaxy S24FE"
 echo -e "  ${CYAN}M33X${NC}       → Samsung Galaxy M33 5G"
+echo -e "  ${CYAN}M34X${NC}       → Samsung Galaxy M34 5G (WIP)"
 echo
 
 read -p "Enter codename (e.g., crownlte): " codename
