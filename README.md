@@ -24,8 +24,8 @@ ArtisanROM Ultra will support the Note9/Note10 Lite/S9/S9+ running an Exynos 981
 Any form of contribution, suggestions, bug report or feature request for the project will be welcome.
 
 # Features
-- Based on the latest stable OneUI 7 Galaxy S24 FE firmware
-- All software features from S24 FE
+- Based on the latest stable OneUI 7 Galaxy S25 Ultra firmware
+- All software features from S25 Ultra
 - S25 Ultra CSC, ringtones and more
 - Moderately Debloated
 - Heavily DeKnoxed
