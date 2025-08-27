@@ -99,7 +99,7 @@ GENERATE_LPMAKE_OPT()
     echo "$OPT"
 }
 
-FILE_NAME="ExtremeROM_${ROM_CODENAME}_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}"
+FILE_NAME="ArtisanROM_${ROM_CODENAME}_${ROM_VERSION}_${TARGET_CODENAME}"
 # ]
 
 echo "Set up tmp dir"
