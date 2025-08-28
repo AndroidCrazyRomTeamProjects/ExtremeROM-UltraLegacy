@@ -1,0 +1,4 @@
+id=param_patch
+name=Param patch
+author=erikiorai
+description=Patcher param.bin/up_param.bin on exynos devices to remove bootloader Warning and update lpm splash screen to ONE UI 7

@@ -107,6 +107,23 @@ mkdir -p "$TMP_DIR"
 
 while read -r i; do
     PARTITION=$(basename "$i")
+     if [[ "$PARTITION" == "param" || "$PARTITION" == "up_param" ]]; then
+        echo "Building $PARTITION.bin"
+        [ -f "$TMP_DIR/$PARTITION.bin" ] && rm -f "$TMP_DIR/$PARTITION.bin"
+        cd "$WORK_DIR/$PARTITION" ; tar -c --format=gnu -f "$TMP_DIR/$PARTITION.bin" -- *.jpg ; cd - &> /dev/null
+        echo "Compressing $PARTITION.bin"
+        lz4 "$TMP_DIR/$PARTITION.bin" "$TMP_DIR/$PARTITION.bin.lz4"
+        echo "Creating an odin BL Package..."
+        [ -f "$OUT_DIR/BL_param_patch.tar" ] && rm -f "$OUT_DIR/$FILE_NAME.tar"
+        cd $TMP_DIR; tar -c --format=gnu -f "$OUT_DIR/BL_param_patch.tar" -- $PARTITION.bin.lz4 ; cd - &> /dev/null
+        echo "Creating checksum for the param..."
+        CHECKSUM="$(md5sum "$OUT_DIR/BL_param_patch.tar" | cut -d " " -f 1 | sed 's/ //')"
+            echo -n "$CHECKSUM" >> "$OUT_DIR/BL_param_patch.tar" \
+            && echo "  BL_param_patch.tar" >> "$OUT_DIR/BL_param_patch.tar" \
+            && mv "$OUT_DIR/BL_param_patch.tar" "$OUT_DIR/BL_param_patch.tar.md5"
+            rm -rf "$TMP_DIR/$PARTITION.bin" "$TMP_DIR/$PARTITION.bin.lz4"
+        continue
+    fi
     [[ "$PARTITION" == "configs" ]] && continue
     [[ "$PARTITION" == "kernel" ]] && continue
     [ -f "$TMP_DIR/$PARTITION.img" ] && rm -f "$TMP_DIR/$PARTITION.img"
