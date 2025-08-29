@@ -99,7 +99,7 @@ source ./buildenv.sh "$codename"
 
 # ==== Confirm before build ====
 echo
-echo -e "${RED}⚠️  WARNING: This process will download over 25GB of files.${NC}"
+echo -e "${RED}⚠️  WARNING: This process will download over 35GB of files.${NC}"
 read -p "Do you want to begin building now? (y/n): " confirm
 
 if [[ "$confirm" =~ ^[Yy]$ ]]; then
