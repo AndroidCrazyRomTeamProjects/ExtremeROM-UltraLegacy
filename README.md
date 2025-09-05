@@ -1,3 +1,12 @@
+# EOL
+### End Of Life
+# everything I had done in this project has failed.
+### I have now stopped the support for this project for now.
+
+## If you are interested in something similar feel free to check out ProjectNERV by Yagzie or ExtremeROM by ExtremeXT.
+## I might continue this Project in the future once I feel experienced enough.
+### I will soon make a similar repo but based on NERV or UNICA for different devices
+##### If you managed to get a device to boot feel free tho pm me on xda (Android-Artisan) or discord (Android_Artisan) so I transfer the repo to you!
 <h1 align="center">
   <img loading="eager" src="readme-res/banner.png"/>
 </h1>
