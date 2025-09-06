@@ -112,11 +112,11 @@ while read -r i; do
         [ -f "$TMP_DIR/$PARTITION.bin" ] && rm -f "$TMP_DIR/$PARTITION.bin"
         cd "$WORK_DIR/$PARTITION" ; tar -c --format=gnu -f "$TMP_DIR/$PARTITION.bin" -- *.jpg ; cd - &> /dev/null
         echo "Compressing $PARTITION.bin"
-        lz4 "$TMP_DIR/$PARTITION.bin" "$TMP_DIR/$PARTITION.bin.lz4"
-        echo "Creating an odin BL Package..."
+        lz4 -B6 --content-size -q --rm "$TMP_DIR/$PARTITION.bin" "$TMP_DIR/$PARTITION.bin.lz4" &> /dev/null
+        echo "Creating an odin BL Package"
         [ -f "$OUT_DIR/BL_param_patch.tar" ] && rm -f "$OUT_DIR/$FILE_NAME.tar"
         cd $TMP_DIR; tar -c --format=gnu -f "$OUT_DIR/BL_param_patch.tar" -- $PARTITION.bin.lz4 ; cd - &> /dev/null
-        echo "Creating checksum for the param..."
+        echo "Creating checksum for the BL package"
         CHECKSUM="$(md5sum "$OUT_DIR/BL_param_patch.tar" | cut -d " " -f 1 | sed 's/ //')"
             echo -n "$CHECKSUM" >> "$OUT_DIR/BL_param_patch.tar" \
             && echo "  BL_param_patch.tar" >> "$OUT_DIR/BL_param_patch.tar" \
