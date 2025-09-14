@@ -5,7 +5,7 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
         MODEL=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f1)
         REGION=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f2)
         BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*" | head -n1)
-
+        
         if [[ -z "$BL_TAR" ]]; then
             echo "ERROR: BL firmware not found for ${MODEL}_${REGION}"
             exit 1
@@ -44,7 +44,8 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
             PARAM_NAME="param"
         fi
     }
-
+    # Only apply patch if the target model matches the target firmware for safty reson
+    if [[ " ${TARGET_ASSERT_MODEL[@]} " =~ " ${MODEL} " ]]; then
     EXTRACT_PARAM
 
     mkdir -p "$WORK_DIR/$PARAM_NAME"
@@ -80,7 +81,10 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
     chmod 444 "$WORK_DIR/$PARAM_NAME/"*
 
     echo "Param patch applied successfully."
-
+    else {
+        echo "Target model ${TARGET_ASSERT_MODEL[@]} does not match firmware model $MODEL, skipping param patch"
+    }
+fi
 else
     echo 'Non-Exynos target detected, skipping param patch...'
 fi
