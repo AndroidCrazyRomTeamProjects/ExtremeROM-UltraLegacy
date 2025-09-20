@@ -8,7 +8,7 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
         
         if [[ -z "$BL_TAR" ]]; then
             echo "ERROR: BL firmware not found for ${MODEL}_${REGION}"
-            exit 1
+            echo "Skipping param Patch"
         fi
 
         UNPACK_DIR="$FW_DIR/${MODEL}_${REGION}"
