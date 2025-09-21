@@ -1,0 +1,4 @@
+id=lpm_media_patch
+name=LPM Medaia Patch
+author=erikiorai
+description=Patches the LPM not displaying on non QHD Phones
