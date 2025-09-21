@@ -2,7 +2,7 @@ MODEL=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f 1)
 REGION=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f 2)
 
 if [ -d "$FW_DIR/${MODEL}_${REGION}/system/system/media/audio/pensounds" ]; then
-    LOG_STEP_IN "- Adding SPen stack"
+    echo "- Adding SPen stack"
     ADD_TO_WORK_DIR "dm3qxxx" "system" "system/app/AirGlance"
     ADD_TO_WORK_DIR "dm3qxxx" "system" "system/app/LiveDrawing"
     ADD_TO_WORK_DIR "pa3qxxx" "system" "system/etc/default-permissions/default-permissions-com.samsung.android.service.aircommand.xml"
@@ -20,5 +20,5 @@ if [ -d "$FW_DIR/${MODEL}_${REGION}/system/system/media/audio/pensounds" ]; then
     ADD_TO_WORK_DIR "pa3qxxx" "system" "system/priv-app/SmartEye"
     LOG_STEP_OUT
 else
-    LOG "- SPen support not detected in target device. Ignoring."
+    echo "- SPen support not detected in target device. Ignoring."
 fi
