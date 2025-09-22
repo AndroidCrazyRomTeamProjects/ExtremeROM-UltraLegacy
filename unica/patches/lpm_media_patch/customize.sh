@@ -1,5 +1,7 @@
-if ${!TARGET_HAS_QHD_DISPLAY}; then
-    echo "-An FHD device detected adding FHD LPM media"
+if ${TARGET_HAS_QHD_DISPLAY}; then
+        echo "-A QHD device skiping LPM media patch"
+    else
+        echo "-An FHD device detected adding FHD LPM media"
     BLOBS_LIST="
     system/media/battery_error.spi
     system/media/battery_low.spi
@@ -32,6 +34,4 @@ if ${!TARGET_HAS_QHD_DISPLAY}; then
     do
         ADD_TO_WORK_DIR "a54xxxxxx" "system" "$blob"
     done
-    else
-        echo "-A QHD device skiping LPM media patch"
 fi
