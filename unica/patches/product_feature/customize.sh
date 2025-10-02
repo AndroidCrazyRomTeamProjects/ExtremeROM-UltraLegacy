@@ -4,7 +4,7 @@ APPLY_PATCH()
     local PATCH
     local OUT
 
-    DECODE_APK "$1"
+    DECODE_APK "system" "$1"
 
     cd "$APKTOOL_DIR/$1"
     PATCH="$SRC_DIR/unica/patches/product_feature/$2"
@@ -80,9 +80,9 @@ if $SOURCE_HAS_QHD_DISPLAY; then
     if ! $TARGET_HAS_QHD_DISPLAY; then
         LOG_STEP_IN "Applying multi resolution patches"
         ADD_TO_WORK_DIR "e1sxxx" "system" "."
-        APPLY_PATCH "system/framework/framework.jar" "resolution/framework.jar/0001-Disable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system/framework/gamemanager.jar" "resolution/gamemanager.jar/0001-Disable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "resolution/SecSettings.apk/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/resolution/framework.jar/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system/framework/gamemanager.jar" "$SRC_DIR/unica/patches/product_feature/resolution/gamemanager.jar/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/resolution/SecSettings.apk/0001-Disable-dynamic-resolution-control.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -112,14 +112,14 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/bin/surfaceflinger"
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/lib64/libgui.so"
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/lib64/libui.so"
-        APPLY_PATCH "system/framework/services.jar" "fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "fingerprint/BiometricSetting.apk/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "fingerprint/BiometricSetting.apk/0002-Always-use-ultrasonic-FOD-animation.patch"
+        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0002-Always-use-ultrasonic-FOD-animation.patch"
     elif [[ "$(GET_FP_SENSOR_TYPE "$TARGET_FP_SENSOR_CONFIG")" == "side" ]]; then
         ADD_TO_WORK_DIR "b6qxxx" "system" "."
         DELETE_FROM_WORK_DIR "system" "system/priv-app/BiometricSetting/oat"
-        APPLY_PATCH "system/framework/services.jar" "fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/framework/services.jar" "fingerprint/services.jar/0002-Set-FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE-to-false.patch"
+        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0002-Set-FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE-to-false.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -128,8 +128,8 @@ if $SOURCE_HAS_HW_MDNIE; then
     if ! $TARGET_HAS_HW_MDNIE; then
         LOG_STEP_IN "Applying HW mDNIe patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_LCD_SUPPORT_MDNIE_HW" --delete
-        APPLY_PATCH "system/framework/framework.jar" "mdnie/hw/framework.jar/0001-Disable-HW-mDNIe.patch"
-        APPLY_PATCH "system/framework/services.jar" "mdnie/hw/services.jar/0001-Disable-HW-mDNIe.patch"
+        APPLY_PATCH "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/framework.jar/0001-Disable-HW-mDNIe.patch"
+        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/services.jar/0001-Disable-HW-mDNIe.patch"
         DELETE_FROM_WORK_DIR "system" "system/bin/mafpc_write"
     fi
     LOG_STEP_OUT
@@ -139,7 +139,7 @@ if $SOURCE_MDNIE_SUPPORT_HDR_EFFECT; then
     if ! $TARGET_MDNIE_SUPPORT_HDR_EFFECT; then
         LOG_STEP_IN "Applying mDNIe HDR effect patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_COMMON_SUPPORT_HDR_EFFECT" --delete
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "mdnie/hdr/SecSettings.apk/0001-Disable-HDR-Settings.patch"
+        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/mdnie/hdr/SecSettings.apk/0001-Disable-HDR-Settings.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -150,7 +150,6 @@ if [[ "$SOURCE_MDNIE_SUPPORTED_MODES" != "$TARGET_MDNIE_SUPPORTED_MODES" ]]; the
     DECODE_APK "system" "system/framework/services.jar"
 
     FTP="
-    system/framework/services.jar/smali_classes2/com/samsung/android/hardware/display/SemMdnieManagerService.smali
     "
     for f in $FTP; do
         sed -i "s/\"$SOURCE_MDNIE_SUPPORTED_MODES\"/\"$TARGET_MDNIE_SUPPORTED_MODES\"/g" "$APKTOOL_DIR/$f"
@@ -161,7 +160,7 @@ fi
 if [[ "$SOURCE_MDNIE_WEAKNESS_SOLUTION_FUNCTION" != "$TARGET_MDNIE_WEAKNESS_SOLUTION_FUNCTION" ]]; then
     LOG_STEP_IN "Applying mDNIe weakness features patches"
 
-    DECODE_APK "system/framework/framework.jar"
+    DECODE_APK "system" "system/framework/framework.jar"
 
     FTP="
     system/framework/framework.jar/smali_classes4/android/view/accessibility/A11yRune.smali
@@ -180,7 +179,7 @@ if [[ "$SOURCE_HFR_MODE" != "$TARGET_HFR_MODE" ]]; then
     DECODE_APK "system" "system/framework/secinputdev-service.jar"
     DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
     DECODE_APK "system" "system/priv-app/SettingsProvider/SettingsProvider.apk"
-    DECODE_APK "system" "system_ext/priv-app/SystemUI/SystemUI.apk"
+    DECODE_APK "system_ext" "priv-app/SystemUI/SystemUI.apk"
 
     FTP="
     system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
@@ -244,7 +243,7 @@ fi
 
 if [[ "$TARGET_DISPLAY_CUTOUT_TYPE" == "right" ]]; then
     LOG_STEP_IN "Applying right cutout patch"
-    APPLY_PATCH "system_ext/priv-app/SystemUI/SystemUI.apk" "cutout/SystemUI.apk/0001-Add-right-cutout-support.patch"
+    APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" "$SRC_DIR/unica/patches/product_feature/cutout/SystemUI.apk/0001-Add-right-cutout-support.patch"
     LOG_STEP_OUT
 fi
 
@@ -279,15 +278,15 @@ fi
 if [ ! -f "$FW_DIR/${MODEL}_${REGION}/vendor/etc/permissions/android.hardware.strongbox_keystore.xml" ]; then
     LOG_STEP_IN
     echo "Applying strongbox patches"
-    APPLY_PATCH "system/framework/framework.jar" "strongbox/framework.jar/0001-Disable-StrongBox-in-DevRootKeyATCmd.patch"
+    APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/strongbox/framework.jar/0001-Disable-StrongBox-in-DevRootKeyATCmd.patch"
     LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_WIFI_7; then
     if ! $TARGET_SUPPORT_WIFI_7; then
         LOG_STEP_IN "Applying Wi-Fi 7 patches"
-        APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0001-Disable-Wi-Fi-7-support.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0001-Disable-Wi-Fi-7-support.patch"
+        APPLY_PATCH "system" "system/framework/semwifi-service.jar" "$SRC_DIR/unica/patches/product_feature/wifi/semwifi-service.jar/0001-Disable-Wi-Fi-7-support.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/wifi/SecSettings.apk/0001-Disable-Wi-Fi-7-support.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -295,8 +294,8 @@ fi
 if $SOURCE_SUPPORT_HOTSPOT_DUALAP; then
     if ! $TARGET_SUPPORT_HOTSPOT_DUALAP; then
         LOG_STEP_IN "Applying Hotspot DualAP patches"
-        APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0002-Disable-DualAP-support.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0002-Disable-DualAP-support.patch"
+        APPLY_PATCH "system" "system/framework/semwifi-service.jar" "$SRC_DIR/unica/patches/product_feature/wifi/semwifi-service.jar/0002-Disable-DualAP-support.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/wifi/SecSettings.apk/0002-Disable-DualAP-support.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -304,7 +303,7 @@ fi
 if $SOURCE_SUPPORT_HOTSPOT_WPA3; then
     if ! $TARGET_SUPPORT_HOTSPOT_WPA3; then
         LOG_STEP_IN "Applying Hotspot WPA3 patches"
-        APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0003-Disable-Hotspot-WPA3-support.patch"
+        APPLY_PATCH "system" "system/framework/semwifi-service.jar" "$SRC_DIR/unica/patches/product_feature/wifi/semwifi-service.jar/0003-Disable-Hotspot-WPA3-support.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -312,7 +311,7 @@ fi
 if $SOURCE_SUPPORT_HOTSPOT_6GHZ; then
     if ! $TARGET_SUPPORT_HOTSPOT_6GHZ; then
         LOG_STEP_IN "Applying Hotspot 6GHz patches"
-        APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
+        APPLY_PATCH "system" "system/framework/semwifi-service.jar" "$SRC_DIR/unica/patches/product_feature/wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -320,8 +319,8 @@ fi
 if $SOURCE_SUPPORT_HOTSPOT_WIFI_6; then
     if ! $TARGET_SUPPORT_HOTSPOT_WIFI_6; then
         LOG_STEP_IN "Applying Hotspot Wi-Fi 6 patches"
-        APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0003-Disable-Hotspot-Wi-Fi-6.patch"
+        APPLY_PATCH "system" "system/framework/semwifi-service.jar" "$SRC_DIR/unica/patches/product_feature/wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/wifi/SecSettings.apk/0003-Disable-Hotspot-Wi-Fi-6.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -329,7 +328,7 @@ fi
 if $SOURCE_SUPPORT_HOTSPOT_ENHANCED_OPEN; then
     if ! $TARGET_SUPPORT_HOTSPOT_ENHANCED_OPEN; then
         LOG_STEP_IN "Applying Hotspot Enhanced Open patches"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0004-Disable-Hotspot-Enhanced-Open.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/wifi/SecSettings.apk/0004-Disable-Hotspot-Enhanced-Open.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -337,8 +336,8 @@ fi
 if $SOURCE_AUDIO_SUPPORT_ACH_RINGTONE; then
     if ! $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
         LOG_STEP_IN "Applying ACH ringtone patches"
-        APPLY_PATCH "system/framework/framework.jar" "audio/framework.jar/0001-Disable-ACH-ringtone-support.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "audio/SecSettings.apk/0001-Disable-ACH-ringtone-support.patch"
+        APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/audio/framework.jar/0001-Disable-ACH-ringtone-support.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/audio/SecSettings.apk/0001-Disable-ACH-ringtone-support.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -346,7 +345,7 @@ fi
 if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION; then
     if ! $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION; then
         LOG_STEP_IN "Applying virtual vibration patches"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "audio/SecSettings.apk/0002-Disable-Virtual-Vibration-support.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/audio/SecSettings.apk/0002-Disable-Virtual-Vibration-support.patch"
     fi
     LOG_STEP_OUT
 fi
