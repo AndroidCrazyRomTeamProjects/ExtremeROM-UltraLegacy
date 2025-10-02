@@ -35,7 +35,7 @@ REGION=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f 2)
 if [[ "$SOURCE_PRODUCT_FIRST_API_LEVEL" != "$TARGET_PRODUCT_FIRST_API_LEVEL" ]]; then
     echo "Applying MAINLINE_API_LEVEL patches"
 
-    DECODE_APK "system/framework/services.jar"
+    DECODE_APK "system" "system/framework/services.jar"
 
     FTP="
     system/framework/services.jar/smali/com/android/server/SystemServer.smali
@@ -54,11 +54,11 @@ if [[ "$SOURCE_PRODUCT_FIRST_API_LEVEL" != "$TARGET_PRODUCT_FIRST_API_LEVEL" ]];
 fi
 
 if [[ "$SOURCE_AUTO_BRIGHTNESS_TYPE" != "$TARGET_AUTO_BRIGHTNESS_TYPE" && "$TARGET_AUTO_BRIGHTNESS_TYPE" != "4" ]]; then
-    echo "Applying auto brightness type patches"
+    LOG_STEP_IN "Applying auto brightness type patches"
 
-    DECODE_APK "system/framework/services.jar"
-    DECODE_APK "system/framework/ssrm.jar"
-    DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
+    DECODE_APK "system" "system/framework/services.jar"
+    DECODE_APK "system" "system/framework/ssrm.jar"
+    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
     FTP="
     system/framework/services.jar/smali_classes2/com/android/server/power/PowerManagerUtil.smali
@@ -73,25 +73,27 @@ if [[ "$SOURCE_AUTO_BRIGHTNESS_TYPE" != "$TARGET_AUTO_BRIGHTNESS_TYPE" && "$TARG
     if [[ "$TARGET_AUTO_BRIGHTNESS_TYPE" == "3" ]]; then
         HEX_PATCH "$WORK_DIR/system/system/lib64/libsensorservice.so" "0660009420008052" "0660009400008052"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_HAS_QHD_DISPLAY; then
     if ! $TARGET_HAS_QHD_DISPLAY; then
-        echo "Applying multi resolution patches"
+        LOG_STEP_IN "Applying multi resolution patches"
         ADD_TO_WORK_DIR "e1sxxx" "system" "."
         APPLY_PATCH "system/framework/framework.jar" "resolution/framework.jar/0001-Disable-dynamic-resolution-control.patch"
         APPLY_PATCH "system/framework/gamemanager.jar" "resolution/gamemanager.jar/0001-Disable-dynamic-resolution-control.patch"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "resolution/SecSettings.apk/0001-Disable-dynamic-resolution-control.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYPE "$TARGET_FP_SENSOR_CONFIG")" ]]; then
-    echo "Applying fingerprint sensor patches"
+    LOG_STEP_IN "Applying fingerprint sensor patches"
 
-    DECODE_APK "system/framework/framework.jar"
-    DECODE_APK "system/framework/services.jar"
-    DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
-    DECODE_APK "system/priv-app/BiometricSetting/BiometricSetting.apk"
+    DECODE_APK "system" "system/framework/framework.jar"
+    DECODE_APK "system" "system/framework/services.jar"
+    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+    DECODE_APK "system" "system/priv-app/BiometricSetting/BiometricSetting.apk"
 
     FTP="
     system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
@@ -119,30 +121,33 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
         APPLY_PATCH "system/framework/services.jar" "fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
         APPLY_PATCH "system/framework/services.jar" "fingerprint/services.jar/0002-Set-FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE-to-false.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_HAS_HW_MDNIE; then
     if ! $TARGET_HAS_HW_MDNIE; then
-        echo "Applying HW mDNIe patches"
+        LOG_STEP_IN "Applying HW mDNIe patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_LCD_SUPPORT_MDNIE_HW" --delete
         APPLY_PATCH "system/framework/framework.jar" "mdnie/hw/framework.jar/0001-Disable-HW-mDNIe.patch"
         APPLY_PATCH "system/framework/services.jar" "mdnie/hw/services.jar/0001-Disable-HW-mDNIe.patch"
         DELETE_FROM_WORK_DIR "system" "system/bin/mafpc_write"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_MDNIE_SUPPORT_HDR_EFFECT; then
     if ! $TARGET_MDNIE_SUPPORT_HDR_EFFECT; then
-        echo "Applying mDNIe HDR effect patches"
+        LOG_STEP_IN "Applying mDNIe HDR effect patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_COMMON_SUPPORT_HDR_EFFECT" --delete
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "mdnie/hdr/SecSettings.apk/0001-Disable-HDR-Settings.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if [[ "$SOURCE_MDNIE_SUPPORTED_MODES" != "$TARGET_MDNIE_SUPPORTED_MODES" ]]; then
-    echo "Applying mDNIe features patches"
+    LOG_STEP_IN "Applying mDNIe features patches"
 
-    DECODE_APK "system/framework/services.jar"
+    DECODE_APK "system" "system/framework/services.jar"
 
     FTP="
     system/framework/services.jar/smali_classes2/com/samsung/android/hardware/display/SemMdnieManagerService.smali
@@ -150,10 +155,11 @@ if [[ "$SOURCE_MDNIE_SUPPORTED_MODES" != "$TARGET_MDNIE_SUPPORTED_MODES" ]]; the
     for f in $FTP; do
         sed -i "s/\"$SOURCE_MDNIE_SUPPORTED_MODES\"/\"$TARGET_MDNIE_SUPPORTED_MODES\"/g" "$APKTOOL_DIR/$f"
     done
+    LOG_STEP_OUT
 fi
 
 if [[ "$SOURCE_MDNIE_WEAKNESS_SOLUTION_FUNCTION" != "$TARGET_MDNIE_WEAKNESS_SOLUTION_FUNCTION" ]]; then
-    echo "Applying mDNIe weakness features patches"
+    LOG_STEP_IN "Applying mDNIe weakness features patches"
 
     DECODE_APK "system/framework/framework.jar"
 
@@ -163,17 +169,18 @@ if [[ "$SOURCE_MDNIE_WEAKNESS_SOLUTION_FUNCTION" != "$TARGET_MDNIE_WEAKNESS_SOLU
     for f in $FTP; do
         sed -i "s/\"$SOURCE_MDNIE_WEAKNESS_SOLUTION_FUNCTION\"/\"$TARGET_MDNIE_WEAKNESS_SOLUTION_FUNCTION\"/g" "$APKTOOL_DIR/$f"
     done
+    LOG_STEP_OUT
 fi
 
 if [[ "$SOURCE_HFR_MODE" != "$TARGET_HFR_MODE" ]]; then
-    echo "Applying HFR_MODE patches"
+    LOG_STEP_IN "Applying HFR_MODE patches"
 
-    DECODE_APK "system/framework/framework.jar"
-    DECODE_APK "system/framework/gamemanager.jar"
-    DECODE_APK "system/framework/secinputdev-service.jar"
-    DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
-    DECODE_APK "system/priv-app/SettingsProvider/SettingsProvider.apk"
-    DECODE_APK "system_ext/priv-app/SystemUI/SystemUI.apk"
+    DECODE_APK "system" "system/framework/framework.jar"
+    DECODE_APK "system" "system/framework/gamemanager.jar"
+    DECODE_APK "system" "system/framework/secinputdev-service.jar"
+    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+    DECODE_APK "system" "system/priv-app/SettingsProvider/SettingsProvider.apk"
+    DECODE_APK "system" "system_ext/priv-app/SystemUI/SystemUI.apk"
 
     FTP="
     system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
@@ -195,13 +202,14 @@ if [[ "$SOURCE_HFR_MODE" != "$TARGET_HFR_MODE" ]]; then
         REPL=$TARGET_HFR_MODE
     fi
     sed -i "s/\"$SOURCE_HFR_MODE\"/\"$REPL\"/g" "$APKTOOL_DIR/system/framework/framework.jar/smali_classes6/com/samsung/android/rune/CoreRune.smali"
+    LOG_STEP_OUT
 fi
 
 if [[ "$SOURCE_HFR_SUPPORTED_REFRESH_RATE" != "$TARGET_HFR_SUPPORTED_REFRESH_RATE" ]]; then
-    echo "Applying HFR_SUPPORTED_REFRESH_RATE patches"
+    LOG_STEP_IN "Applying HFR_SUPPORTED_REFRESH_RATE patches"
 
-    DECODE_APK "system/framework/framework.jar"
-    DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
+    DECODE_APK "system" "system/framework/framework.jar"
+    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
     FTP="
     system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
@@ -214,13 +222,14 @@ if [[ "$SOURCE_HFR_SUPPORTED_REFRESH_RATE" != "$TARGET_HFR_SUPPORTED_REFRESH_RAT
             sed -i "s/\"$SOURCE_HFR_SUPPORTED_REFRESH_RATE\"/\"\"/g" "$APKTOOL_DIR/$f"
         fi
     done
+    LOG_STEP_OUT
 fi
 if [[ "$SOURCE_HFR_DEFAULT_REFRESH_RATE" != "$TARGET_HFR_DEFAULT_REFRESH_RATE" ]]; then
-    echo "Applying HFR_DEFAULT_REFRESH_RATE patches"
+    LOG_STEP_IN "Applying HFR_DEFAULT_REFRESH_RATE patches"
 
-    DECODE_APK "system/framework/framework.jar"
-    DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
-    DECODE_APK "system/priv-app/SettingsProvider/SettingsProvider.apk"
+    DECODE_APK "system" "system/framework/framework.jar"
+    DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+    DECODE_APK "system" "system/priv-app/SettingsProvider/SettingsProvider.apk"
 
     FTP="
     system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
@@ -230,17 +239,19 @@ if [[ "$SOURCE_HFR_DEFAULT_REFRESH_RATE" != "$TARGET_HFR_DEFAULT_REFRESH_RATE" ]
     for f in $FTP; do
         sed -i "s/\"$SOURCE_HFR_DEFAULT_REFRESH_RATE\"/\"$TARGET_HFR_DEFAULT_REFRESH_RATE\"/g" "$APKTOOL_DIR/$f"
     done
+    LOG_STEP_OUT
 fi
 
 if [[ "$TARGET_DISPLAY_CUTOUT_TYPE" == "right" ]]; then
-    echo "Applying right cutout patch"
+    LOG_STEP_IN "Applying right cutout patch"
     APPLY_PATCH "system_ext/priv-app/SystemUI/SystemUI.apk" "cutout/SystemUI.apk/0001-Add-right-cutout-support.patch"
+    LOG_STEP_OUT
 fi
 
 if [[ "$SOURCE_DVFS_CONFIG_NAME" != "$TARGET_DVFS_CONFIG_NAME" ]]; then
-    echo "Applying DVFS patches"
+    LOG_STEP_IN "Applying DVFS patches"
 
-    DECODE_APK "system/framework/ssrm.jar"
+    DECODE_APK "system" "system/framework/ssrm.jar"
 
     FTP="
     system/framework/ssrm.jar/smali/com/android/server/ssrm/Feature.smali
@@ -248,6 +259,7 @@ if [[ "$SOURCE_DVFS_CONFIG_NAME" != "$TARGET_DVFS_CONFIG_NAME" ]]; then
     for f in $FTP; do
         sed -i "s/\"$SOURCE_DVFS_CONFIG_NAME\"/\"$TARGET_DVFS_CONFIG_NAME\"/g" "$APKTOOL_DIR/$f"
     done
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_IS_ESIM_SUPPORTED; then
@@ -258,77 +270,89 @@ if $SOURCE_IS_ESIM_SUPPORTED; then
 fi
 
 if [ -f "$FW_DIR/${MODEL}_${REGION}/system/system/etc/permissions/com.sec.feature.cover.xml" ]; then
-    echo "Adding LED Case Cover support"
+    LOG_STEP_IN "Adding LED Case Cover support"
     ADD_TO_WORK_DIR "p3sxxx" "system" "system/priv-app/LedCoverService/LedCoverService.apk"
     ADD_TO_WORK_DIR "p3sxxx" "system" "system/etc/permissions/privapp-permissions-com.sec.android.cover.ledcover.xml"
+    LOG_STEP_OUT
 fi
 
 if [ ! -f "$FW_DIR/${MODEL}_${REGION}/vendor/etc/permissions/android.hardware.strongbox_keystore.xml" ]; then
+    LOG_STEP_IN
     echo "Applying strongbox patches"
     APPLY_PATCH "system/framework/framework.jar" "strongbox/framework.jar/0001-Disable-StrongBox-in-DevRootKeyATCmd.patch"
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_WIFI_7; then
     if ! $TARGET_SUPPORT_WIFI_7; then
-        echo "Applying Wi-Fi 7 patches"
+        LOG_STEP_IN "Applying Wi-Fi 7 patches"
         APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0001-Disable-Wi-Fi-7-support.patch"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0001-Disable-Wi-Fi-7-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_HOTSPOT_DUALAP; then
     if ! $TARGET_SUPPORT_HOTSPOT_DUALAP; then
-        echo "Applying Hotspot DualAP patches"
+        LOG_STEP_IN "Applying Hotspot DualAP patches"
         APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0002-Disable-DualAP-support.patch"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0002-Disable-DualAP-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_HOTSPOT_WPA3; then
     if ! $TARGET_SUPPORT_HOTSPOT_WPA3; then
-        echo "Applying Hotspot WPA3 patches"
+        LOG_STEP_IN "Applying Hotspot WPA3 patches"
         APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0003-Disable-Hotspot-WPA3-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_HOTSPOT_6GHZ; then
     if ! $TARGET_SUPPORT_HOTSPOT_6GHZ; then
-        echo "Applying Hotspot 6GHz patches"
+        LOG_STEP_IN "Applying Hotspot 6GHz patches"
         APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_HOTSPOT_WIFI_6; then
     if ! $TARGET_SUPPORT_HOTSPOT_WIFI_6; then
-        echo "Applying Hotspot Wi-Fi 6 patches"
+        LOG_STEP_IN "Applying Hotspot Wi-Fi 6 patches"
         APPLY_PATCH "system/framework/semwifi-service.jar" "wifi/semwifi-service.jar/0004-Disable-Hotspot-6GHz-support.patch"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0003-Disable-Hotspot-Wi-Fi-6.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_SUPPORT_HOTSPOT_ENHANCED_OPEN; then
     if ! $TARGET_SUPPORT_HOTSPOT_ENHANCED_OPEN; then
-        echo "Applying Hotspot Enhanced Open patches"
+        LOG_STEP_IN "Applying Hotspot Enhanced Open patches"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "wifi/SecSettings.apk/0004-Disable-Hotspot-Enhanced-Open.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_AUDIO_SUPPORT_ACH_RINGTONE; then
     if ! $TARGET_AUDIO_SUPPORT_ACH_RINGTONE; then
-        echo "Applying ACH ringtone patches"
+        LOG_STEP_IN "Applying ACH ringtone patches"
         APPLY_PATCH "system/framework/framework.jar" "audio/framework.jar/0001-Disable-ACH-ringtone-support.patch"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "audio/SecSettings.apk/0001-Disable-ACH-ringtone-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if $SOURCE_AUDIO_SUPPORT_VIRTUAL_VIBRATION; then
     if ! $TARGET_AUDIO_SUPPORT_VIRTUAL_VIBRATION; then
-        echo "Applying virtual vibration patches"
+        LOG_STEP_IN "Applying virtual vibration patches"
         APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "audio/SecSettings.apk/0002-Disable-Virtual-Vibration-support.patch"
     fi
+    LOG_STEP_OUT
 fi
 
 if [ "$(GET_PROP "vendor" "ro.build.ab_update")" != "true" ]; then
-    echo "Disabling A/B partitions"
+    LOG_STEP_IN "Disabling A/B partitions"
     SET_PROP "product" "ro.product.ab_ota_partitions" --delete
+    LOG_STEP_OUT
 fi
