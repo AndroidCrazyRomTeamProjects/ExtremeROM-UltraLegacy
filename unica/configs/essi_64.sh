@@ -23,11 +23,11 @@ ROM_CODENAME="Ultra"
 # Source ROM firmware
 case "$TARGET_SINGLE_SYSTEM_IMAGE" in
     "essi")
-        # Galaxy S24 Plus (One UI 7)
+        # Galaxy S24 Plus (One UI 8)
         SOURCE_CODENAME="e2s"
         SOURCE_FIRMWARE="SM-S926B/EUX/355622364970162"
         SOURCE_EXTRA_FIRMWARES=()
-        SOURCE_API_LEVEL=35
+        SOURCE_API_LEVEL=36
         SOURCE_PRODUCT_FIRST_API_LEVEL=34
         SOURCE_VNDK_VERSION="none"
         SOURCE_HAS_SYSTEM_EXT=false
