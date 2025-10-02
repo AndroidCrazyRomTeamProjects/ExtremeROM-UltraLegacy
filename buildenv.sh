@@ -15,13 +15,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# shellcheck disable=SC1007,SC1091,SC2046,SC2164
-
 # [
+# shellcheck disable=SC1007,SC2164
 # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/envsetup.sh#18
 _GET_SRC_DIR()
 {
-    local TOPFILE="unica/config.sh"
+    local TOPFILE="unica/configs/version.sh"
     if [ -n "$SRC_DIR" ] && [ -f "$SRC_DIR/$TOPFILE" ]; then
         # The following circumlocution ensures we remove symlinks from SRC_DIR.
         (cd "$SRC_DIR"; PWD= /bin/pwd)
@@ -46,30 +45,67 @@ _GET_SRC_DIR()
     fi
 }
 
+_PRINT_USAGE()
+{
+    echo "Usage: source buildenv.sh [--debug] <target>" >&2
+    echo "Available devices:" >&2
+    printf '%s\n' "${TARGETS[@]}" >&2
+}
+
+# https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/envsetup.sh#806
+croot()
+{
+    if [ -d "$SRC_DIR" ]; then
+        if [ "$1" ]; then
+            cd "$SRC_DIR/$1"
+        else
+            cd "$SRC_DIR"
+        fi
+    else
+        echo "Couldn't locate the top of the tree. Try setting SRC_DIR."
+        return 1
+    fi
+}
+
 run_cmd()
 {
-    local CMD=$1
+    local CMD="$1"
 
-    local CMDS
-    CMDS="$(find "$SRC_DIR/scripts" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' -o -type l -printf '%f\n' | sort | sed "s/.sh//g")"
-
-    if [ -z "$CMD" ] || [ "$CMD" = "--help" ] || [ "$CMD" = "-h" ]; then
-        echo -e "Available cmds:\n$CMDS"
-        return 1
-    elif ! echo "$CMDS" | grep -w -- "$CMD" &> /dev/null; then
-        echo    "\"$CMD\" is not valid." >&2
-        echo -e "Available cmds:\n$CMDS" >&2
-        return 1
-    else
+    if [ -x "$SRC_DIR/scripts/$CMD.sh" ]; then
         shift
-        "$SRC_DIR/scripts/$CMD.sh" "$@"
+        mkdir -p "$(dirname "$WORK_DIR")"
+        (set -o pipefail; "$SRC_DIR/scripts/$CMD.sh" "$@" |& tee \
+            >(sed -r -e "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" -e "/#/d" > "$(dirname "$WORK_DIR")/$CMD-$(date +%Y%m%d_%H%M%S).log"))
         return $?
+    else
+        local CMDS=()
+        while IFS= read -r f; do
+            CMDS+=("$f")
+        done < <(find "$SRC_DIR/scripts" -maxdepth 1 ! -type d -printf '%f\n' | sort | sed "s/.sh//")
+
+        if [ "$CMD" ]; then
+            if [[ "$CMD" == "--help" ]] || [[ "$CMD" == "-h" ]]; then
+                echo "Available cmds:" >&2
+                for c in "${CMDS[@]}"; do
+                    echo -e '\n\033[1;37m'"$c:"'\033[0m'
+                    "$SRC_DIR/scripts/$c.sh" --help
+                done
+                return 0
+            else
+                echo -e '\033[0;31m'"\"$CMD\" is not a valid cmd."'\033[0m' >&2
+            fi
+        fi
+
+        echo "Available cmds:" >&2
+        printf '%s\n' "${CMDS[@]}" >&2
+        return 1
     fi
 }
 
 alias unica=run_cmd
 alias extremerom=run_cmd
 alias erom=run_cmd
+alias m="./scripts/make_rom.sh"
 
 # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/envsetup.sh#806
 croot()
@@ -95,29 +131,36 @@ fi
 
 unset -f _GET_SRC_DIR
 
+export DEBUG=false
 export SRC_DIR
 export OUT_DIR="$SRC_DIR/out"
 export TMP_DIR="$OUT_DIR/tmp"
 export KERNEL_TMP_DIR="$OUT_DIR/kernel_tmp"
 export ODIN_DIR="$OUT_DIR/odin"
 export FW_DIR="$OUT_DIR/fw"
-export APKTOOL_DIR="$OUT_DIR/apktool"
-export WORK_DIR="$OUT_DIR/work_dir"
-export TOOLS_DIR="$OUT_DIR/tools/bin"
-export PATH="$TOOLS_DIR:$PATH"
+export TOOLS_DIR="$OUT_DIR/tools"
+export PATH="$TOOLS_DIR/bin:$PATH"
 
 TARGETS=()
-while IFS='' read -r t; do TARGETS+=("$t"); done < <(find "$SRC_DIR/target" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+while IFS= read -r t; do
+    TARGETS+=("$t")
+done < <(find "$SRC_DIR/target" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | sort)
 
-if [ "$#" -gt 1 ]; then
-    echo "Usage: source buildenv.sh <target>" >&2
-    echo "Available devices:" >&2
-    for t in "${TARGETS[@]}"
-    do
-        echo "$t" >&2
-    done
-    return 1
-elif [ "$#" -ne 1 ]; then
+while [[ "$1" == "-"* ]]; do
+    if [[ "$1" == "--debug" ]]; then
+        export DEBUG=true
+    elif [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+        _PRINT_USAGE
+        return 0
+    else
+        echo "Unknown option: $1" >&2
+        _PRINT_USAGE
+        return 1
+    fi
+    shift
+done
+
+if [ "$#" -ne 1 ]; then
     echo "No target specified. Please choose from the available devices below:"
 
     select SELECTED_TARGET in "${TARGETS[@]}"; do
@@ -131,19 +174,20 @@ else
     SELECTED_TARGET="$1"
 fi
 
-if ! echo "${TARGETS[@]}" | grep -w -- "$SELECTED_TARGET" &> /dev/null; then
+if [ ! -d "$SRC_DIR/target/$SELECTED_TARGET" ]; then
     echo "\"$SELECTED_TARGET\" is not a valid device." >&2
-    echo "Available devices:" >&2
-    for t in "${TARGETS[@]}"
-    do
-        echo "$t" >&2
-    done
+    _PRINT_USAGE
     return 1
 fi
 
-mkdir -p "$OUT_DIR"
-run_cmd build_dependencies || return 1
-[ -f "$OUT_DIR/config.sh" ] && unset $(sed "/Automatically/d" "$OUT_DIR/config.sh" | cut -d= -f1)
+unset -f _PRINT_USAGE
+
+export APKTOOL_DIR="$OUT_DIR/target/$SELECTED_TARGET/apktool"
+export WORK_DIR="$OUT_DIR/target/$SELECTED_TARGET/work_dir"
+
+mkdir -p "$OUT_DIR/target/$SELECTED_TARGET"
+# shellcheck disable=SC2046
+[ -f "$OUT_DIR/config.sh" ] && unset $(sed "/Automatically/d" "$OUT_DIR/config.sh" | cut -d "=" -f 1)
 "$SRC_DIR/scripts/internal/gen_config_file.sh" "$SELECTED_TARGET" || return 1
 set -o allexport; source "$OUT_DIR/config.sh"; set +o allexport
 

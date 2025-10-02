@@ -16,60 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# shellcheck disable=SC1091,SC2001
-
-set -Ee
+set -e
 
 #[
-source "$SRC_DIR/scripts/utils/module_utils.sh"
-
-READ_AND_APPLY_PROPS()
-{
-    local PARTITION
-
-    for patch in "$1"/*.prop
-    do
-        PARTITION=$(basename "$patch" | sed 's/.prop//g')
-        _IS_VALID_PARTITION_NAME "$PARTITION" || continue
-
-        while read -r i; do
-            [[ "$i" = "#"* ]] && continue
-            [[ -z "$i" ]] && continue
-
-            if echo -n "$i" | grep -q "="; then
-                if [[ -z "$(echo -n "$i" | cut -d "=" -f 2)" ]]; then
-                    SET_PROP "$PARTITION" "$(echo -n "$i" | cut -d "=" -f 1)" --delete
-                else
-                    SET_PROP "$PARTITION" "$(echo -n "$i" | cut -d "=" -f 1)" "$(echo -n "$i" | cut -d "=" -f 2)"
-                fi
-            else
-                echo "Malformed string in $patch: \"$i\""
-                return 1
-            fi
-        done < "$patch"
-    done
-}
-
-APPLY_SMALI_PATCHES()
-{
-    local PATCHES_PATH="$1"
-    local TARGET="$2"
-
-    [ ! -d "$APKTOOL_DIR$TARGET" ] && bash "$SRC_DIR/scripts/apktool.sh" d "$TARGET"
-
-    cd "$APKTOOL_DIR$TARGET"
-    while read -r patch; do
-        local OUT
-        local COMMIT_NAME
-        COMMIT_NAME="$(grep "^Subject:" "$patch" | sed 's/.*PATCH] //')"
-
-        echo "Applying \"$COMMIT_NAME\" to $TARGET"
-        OUT="$(patch -p1 -s -t -N --dry-run < "$patch")" \
-            || echo "$OUT" | grep -q "Skipping patch" || false
-        patch -p1 -s -t -N --no-backup-if-mismatch < "$patch" &> /dev/null || true
-    done <<< "$(find "$PATCHES_PATH$TARGET" -type f -name "*.patch" | sort -n)"
-    cd - &> /dev/null
-}
+source "$SRC_DIR/scripts/utils/module_utils.sh" || exit 1
 
 APPLY_MODULE()
 {
@@ -78,7 +28,7 @@ APPLY_MODULE()
     local MODAUTH
 
     if [ ! -d "$MODPATH" ]; then
-        echo "Folder not found: $MODPATH"
+        LOGE "Folder not found: ${MODPATH//$SRC_DIR\//}"
         return 1
     fi
 
@@ -87,7 +37,7 @@ APPLY_MODULE()
     fi
 
     if [ ! -f "$MODPATH/module.prop" ]; then
-        echo "File not found: $MODPATH/module.prop"
+        LOGE "File not found: ${MODPATH//$SRC_DIR\//}/module.prop"
         return 1
     elif [ -f "$MODPATH/disable" ]; then
         return 0
@@ -96,9 +46,9 @@ APPLY_MODULE()
         MODAUTH="$(grep "^author" "$MODPATH/module.prop" | sed "s/author=//" | sed "s/, /, @/")"
     fi
 
-    echo "- Processing \"$MODNAME\" by @$MODAUTH"
+    LOG_STEP_IN "- Processing \"$MODNAME\" by @$MODAUTH"
 
-    if ! grep -q '^SKIPUNZIP=1$' "$MODPATH/customize.sh" 2> /dev/null; then
+    if ! grep -q "^SKIPUNZIP=1$" "$MODPATH/customize.sh" 2> /dev/null; then
         [ -d "$MODPATH/odm" ] && ADD_TO_WORK_DIR "$MODPATH" "odm" "." 0 0 755 "u:object_r:vendor_file:s0"
         [ -d "$MODPATH/product" ] && ADD_TO_WORK_DIR "$MODPATH" "product" "." 0 0 755 "u:object_r:system_file:s0"
         [ -d "$MODPATH/system" ] && ADD_TO_WORK_DIR "$MODPATH" "system" "." 0 0 755 "u:object_r:system_file:s0"
@@ -113,26 +63,79 @@ APPLY_MODULE()
     [ -f "$MODPATH/customize.sh" ] && . "$MODPATH/customize.sh"
 
     if [ -d "$MODPATH/smali" ]; then
-        local FILES_TO_PATCH
-        FILES_TO_PATCH="$(find "$MODPATH/smali" -type d \( -name "*.apk" -o -name "*.jar" \) -printf "%p\n" | sed 's/.*\/smali//')"
-
-        for i in $FILES_TO_PATCH; do
-            APPLY_SMALI_PATCHES "$MODPATH/smali" "$i"
-        done
+        while IFS= read -r f; do
+            APPLY_SMALI_PATCHES "$MODPATH/smali" "$f"
+        done < <(find "$MODPATH/smali" -type d \( -name "*.apk" -o -name "*.jar" \) | sed "s|$MODPATH/smali/||")
     fi
+
+    LOG_STEP_OUT
+
+    return 0
+}
+
+APPLY_SMALI_PATCHES()
+{
+    local PATCHES_PATH="$1"
+    local TARGET="$2"
+
+    local PARTITION
+    PARTITION="$(cut -d "/" -f 1 -s <<< "$TARGET")"
+
+    if ! IS_VALID_PARTITION_NAME "$PARTITION"; then
+        LOGE "\"$PARTITION\" is not a valid partition name"
+        return 1
+    fi
+
+    while IFS= read -r p; do
+        local FILE="$TARGET"
+        [[ "$PARTITION" != "system" ]] && FILE="$(cut -d "/" -f 2- -s <<< "$FILE")"
+
+        APPLY_PATCH "$PARTITION" "$FILE" "$p"
+    done < <(find "$PATCHES_PATH/$TARGET" -type f -name "*.patch" | sort -n)
+
+    return 0
+}
+
+READ_AND_APPLY_PROPS()
+{
+    local MODPATH="$1"
+    local PARTITION
+
+    while IFS= read -r f; do
+        PARTITION=$(basename "$f" | sed "s/.prop//")
+        IS_VALID_PARTITION_NAME "$PARTITION" || continue
+
+        while read -r l; do
+            [[ "$l" == "#"* ]] && continue
+            [ ! "$l" ] && continue
+
+            if grep -q -F "=" <<< "$l"; then
+                if [ ! "$(cut -d "=" -f 2- -s <<< "$l")" ]; then
+                    SET_PROP "$PARTITION" "$(cut -d "=" -f 1 -s <<< "$l")" --delete
+                else
+                    SET_PROP "$PARTITION" "$(cut -d "=" -f 1 -s <<< "$l")" "$(cut -d "=" -f 2- -s <<< "$l")"
+                fi
+            else
+                LOGE "Malformed string in $f: \"$l\""
+                return 1
+            fi
+        done < "$f"
+    done < <(find "$MODPATH" -maxdepth 1 -type f -name "*.prop")
+
+    return 0
 }
 #]
 
-if [ "$#" == 0 ]; then
-    echo "Usage: apply_modules <folder>"
+if [ "$#" != "1" ]; then
+    echo "Usage: apply_modules <folder>" >&2
     exit 1
 elif [ ! -d "$1" ]; then
-    echo "Folder not found: $1"
+    LOGE "Folder not found: ${1//$SRC_DIR\//}"
     exit 1
 fi
 
-while read -r i; do
-    APPLY_MODULE "$i"
-done <<< "$(find "$1" -mindepth 1 -maxdepth 1 -type d | sort)"
+while IFS= read -r f; do
+    APPLY_MODULE "$f"
+done < <(find "$1" -mindepth 1 -maxdepth 1 -type d | sort)
 
 exit 0
