@@ -22,38 +22,44 @@ SET_CSC_FEATURE_CONFIG()
     return 0
 }
 
-echo "Patching CSC model"
+LOG "- Patching CSC model"
 SOURCE_MODEL=$(echo -n "$SOURCE_FIRMWARE" | cut -d "/" -f 1)
 TARGET_MODEL=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f 1)
-find "$WORK_DIR/optics" -type f -exec sed -i "s/SAOMC_${SOURCE_MODEL}/SAOMC_${TARGET_MODEL}/g" {} +
+find "$WORK_DIR/optics" -type f -exec sed -i "s/SAOMC_SM-S938B/SAOMC_${TARGET_MODEL}/g" {} +
 
-echo "Patching CSC Features"
+LOG_STEP_IN "- Patching CSC Features"
 while read -r FILE; do
-    # Decode XML
-    ! grep -q 'CscFeature' "$FILE" && $TOOLS_DIR/cscdecoder --decode --in-place "$FILE"
+    (
+        LOG "- Decoding $FILE"
+        ! grep -q 'CscFeature' "$FILE" && EVAL "$TOOLS_DIR/bin/cscdecoder --decode --in-place \"$FILE\""
 
-    # eSIM
-    if $SOURCE_IS_ESIM_SUPPORTED && ! $TARGET_IS_ESIM_SUPPORTED; then
-        SET_CSC_FEATURE_CONFIG "CscFeature_RIL_SupportEsim" "FALSE"
-        SET_CSC_FEATURE_CONFIG "CscFeature_SetupWizard_SupportEsimAsPrimary" --delete
-    fi
+        LOG_STEP_IN "- Applying CSC Tweaks"
+        if $SOURCE_IS_ESIM_SUPPORTED && ! $TARGET_IS_ESIM_SUPPORTED; then
+            SET_CSC_FEATURE_CONFIG "CscFeature_RIL_SupportEsim" "FALSE"
+            SET_CSC_FEATURE_CONFIG "CscFeature_SetupWizard_SupportEsimAsPrimary" --delete
+        fi
 
-    # Tweaks
-    SET_CSC_FEATURE_CONFIG "CscFeature_VoiceCall_ConfigRecording" "RecordingAllowed"
-    SET_CSC_FEATURE_CONFIG "CscFeature_Setting_SupportRealTimeNetworkSpeed" "TRUE"
-    SET_CSC_FEATURE_CONFIG "CscFeature_Setting_EnableHwVersionDisplay" "TRUE"
-    SET_CSC_FEATURE_CONFIG "CscFeature_Setting_SupportMenuSmartTutor" "FALSE"
-    SET_CSC_FEATURE_CONFIG "CscFeature_Setting_ConfigLongPressType" 1
-    SET_CSC_FEATURE_CONFIG "CscFeature_Common_DisableBixby" --delete
+        SET_CSC_FEATURE_CONFIG "CscFeature_VoiceCall_ConfigRecording" "RecordingAllowed"
+        SET_CSC_FEATURE_CONFIG "CscFeature_Setting_SupportRealTimeNetworkSpeed" "TRUE"
+        SET_CSC_FEATURE_CONFIG "CscFeature_Setting_EnableHwVersionDisplay" "TRUE"
+        SET_CSC_FEATURE_CONFIG "CscFeature_Setting_SupportMenuSmartTutor" "FALSE"
+        SET_CSC_FEATURE_CONFIG "CscFeature_Setting_ConfigLongPressType" 1
+        SET_CSC_FEATURE_CONFIG "CscFeature_Common_DisableBixby" --delete
+        LOG_STEP_OUT
 
-    # Encode XML
-    $TOOLS_DIR/cscdecoder --encode --in-place "$FILE"
+        LOG "- Encoding $FILE"
+        EVAL "$TOOLS_DIR/bin/cscdecoder --encode --in-place \"$FILE\""
+    ) &
 done <<< "$(find "$WORK_DIR/optics" -type f -name "cscfeature.xml")"
 
-echo "Patching APKs for network speed monitoring..."
+# shellcheck disable=SC2046
+wait $(jobs -p) || exit 1
+LOG_STEP_OUT
 
-DECODE_APK "system/priv-app/SecSettings/SecSettings.apk"
-DECODE_APK "system_ext/priv-app/SystemUI/SystemUI.apk"
+LOG_STEP_IN "- Patching APKs for network speed monitoring"
+
+DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+DECODE_APK "system_ext" "priv-app/SystemUI/SystemUI.apk"
 
 FTP="
 system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/eternal/provider/items/NotificationsItem.smali
@@ -65,3 +71,4 @@ system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/QpRune.smal
 for f in $FTP; do
     sed -i "s/CscFeature_Common_SupportZProjectFunctionInGlobal/CscFeature_Setting_SupportRealTimeNetworkSpeed/g" "$APKTOOL_DIR/$f"
 done
+LOG_STEP_OUT
