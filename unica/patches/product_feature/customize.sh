@@ -1,19 +1,4 @@
 # [
-APPLY_PATCH()
-{
-    local PATCH
-    local OUT
-
-    DECODE_APK "system" "$1"
-
-    cd "$APKTOOL_DIR/$1"
-    PATCH="$SRC_DIR/unica/patches/product_feature/$2"
-    OUT="$(patch -p1 -s -t -N --dry-run < "$PATCH")" \
-        || echo "$OUT" | grep -q "Skipping patch" || false
-    patch -p1 -s -t -N --no-backup-if-mismatch < "$PATCH" &> /dev/null || true
-    cd - &> /dev/null
-}
-
 GET_FP_SENSOR_TYPE()
 {
     if [[ "$1" == *"ultrasonic"* ]]; then
@@ -80,9 +65,9 @@ if $SOURCE_HAS_QHD_DISPLAY; then
     if ! $TARGET_HAS_QHD_DISPLAY; then
         LOG_STEP_IN "Applying multi resolution patches"
         ADD_TO_WORK_DIR "e1sxxx" "system" "."
-        APPLY_PATCH "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/resolution/framework.jar/0001-Disable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system/framework/gamemanager.jar" "$SRC_DIR/unica/patches/product_feature/resolution/gamemanager.jar/0001-Disable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/resolution/SecSettings.apk/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/resolution/framework.jar/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system" "system/framework/gamemanager.jar" "$SRC_DIR/unica/patches/product_feature/resolution/gamemanager.jar/0001-Disable-dynamic-resolution-control.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/resolution/SecSettings.apk/0001-Disable-dynamic-resolution-control.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -112,14 +97,14 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/bin/surfaceflinger"
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/lib64/libgui.so"
         ADD_TO_WORK_DIR "r12sxxx" "system" "system/lib64/libui.so"
-        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0002-Always-use-ultrasonic-FOD-animation.patch"
+        APPLY_PATCH "system" "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system" "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system" "system/priv-app/BiometricSetting/BiometricSetting.apk" "$SRC_DIR/unica/patches/product_feature/fingerprint/BiometricSetting.apk/0002-Always-use-ultrasonic-FOD-animation.patch"
     elif [[ "$(GET_FP_SENSOR_TYPE "$TARGET_FP_SENSOR_CONFIG")" == "side" ]]; then
         ADD_TO_WORK_DIR "b6qxxx" "system" "."
         DELETE_FROM_WORK_DIR "system" "system/priv-app/BiometricSetting/oat"
-        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
-        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0002-Set-FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE-to-false.patch"
+        APPLY_PATCH "system" "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0001-Set-FP_FEATURE_SENSOR_IS_ULTRASONIC-to-false.patch"
+        APPLY_PATCH "system" "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/fingerprint/services.jar/0002-Set-FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE-to-false.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -128,8 +113,8 @@ if $SOURCE_HAS_HW_MDNIE; then
     if ! $TARGET_HAS_HW_MDNIE; then
         LOG_STEP_IN "Applying HW mDNIe patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_LCD_SUPPORT_MDNIE_HW" --delete
-        APPLY_PATCH "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/framework.jar/0001-Disable-HW-mDNIe.patch"
-        APPLY_PATCH "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/services.jar/0001-Disable-HW-mDNIe.patch"
+        APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/framework.jar/0001-Disable-HW-mDNIe.patch"
+        APPLY_PATCH "system" "system/framework/services.jar" "$SRC_DIR/unica/patches/product_feature/mdnie/hw/services.jar/0001-Disable-HW-mDNIe.patch"
         DELETE_FROM_WORK_DIR "system" "system/bin/mafpc_write"
     fi
     LOG_STEP_OUT
@@ -139,7 +124,7 @@ if $SOURCE_MDNIE_SUPPORT_HDR_EFFECT; then
     if ! $TARGET_MDNIE_SUPPORT_HDR_EFFECT; then
         LOG_STEP_IN "Applying mDNIe HDR effect patches"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_COMMON_SUPPORT_HDR_EFFECT" --delete
-        APPLY_PATCH "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/mdnie/hdr/SecSettings.apk/0001-Disable-HDR-Settings.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/mdnie/hdr/SecSettings.apk/0001-Disable-HDR-Settings.patch"
     fi
     LOG_STEP_OUT
 fi
@@ -276,8 +261,7 @@ if [ -f "$FW_DIR/${MODEL}_${REGION}/system/system/etc/permissions/com.sec.featur
 fi
 
 if [ ! -f "$FW_DIR/${MODEL}_${REGION}/vendor/etc/permissions/android.hardware.strongbox_keystore.xml" ]; then
-    LOG_STEP_IN
-    echo "Applying strongbox patches"
+    LOG_STEP_IN "Applying strongbox patches"
     APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/strongbox/framework.jar/0001-Disable-StrongBox-in-DevRootKeyATCmd.patch"
     LOG_STEP_OUT
 fi
