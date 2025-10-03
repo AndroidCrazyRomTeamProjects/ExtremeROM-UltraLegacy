@@ -83,8 +83,8 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
     FTP="
     system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
     system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/HidlFingerprintSensorConfig.smali
-    system/framework/framework.jar/smali_classes5/com/samsung/android/bio/fingerprint/SemFingerprintManager.smali
-    system/framework/framework.jar/smali_classes5/com/samsung/android/bio/fingerprint/SemFingerprintManager\$Characteristics.smali
+    system/framework/framework.jar/smali_classes6/com/samsung/android/bio/fingerprint/SemFingerprintManager.smali
+    system/framework/framework.jar/smali_classes6/com/samsung/android/bio/fingerprint/SemFingerprintManager\$Characteristics.smali
     system/framework/framework.jar/smali_classes6/com/samsung/android/rune/InputRune.smali
     system/framework/services.jar/smali/com/android/server/biometrics/sensors/fingerprint/FingerprintUtils.smali
     system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali
