@@ -1,17 +1,14 @@
 if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "essi_64" ]]; then
-    echo 'Exynos target detected, applying param patch...'
+    LOG_STEP_IN 'Exynos target detected, applying param patch...'
+    MODEL=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f1)
+    CSC=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f2)
+
+    DOWNLOADED_FIRMWARE="$(cat "$ODIN_DIR/${MODEL}_${CSC}/.downloaded")"
+    BL_TAR="$(find "$ODIN_DIR/${MODEL}_${CSC}" -name "BL_$(cut -d "/" -f 1 -s <<< "$DOWNLOADED_FIRMWARE")*.md5" | sort -r | head -n 1)"
+
+    UNPACK_DIR="$FW_DIR/${MODEL}_${CSC}"
 
     EXTRACT_PARAM() {
-        MODEL=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f1)
-        REGION=$(echo -n "$TARGET_FIRMWARE" | cut -d "/" -f2)
-        BL_TAR=$(find "$ODIN_DIR/${MODEL}_${REGION}" -name "BL*" | head -n1)
-        
-        if [[ -z "$BL_TAR" ]]; then
-            echo "ERROR: BL firmware not found for ${MODEL}_${REGION}"
-            echo "Skipping param Patch"
-        fi
-
-        UNPACK_DIR="$FW_DIR/${MODEL}_${REGION}"
 
         # Check for param files
         if [[ ! -f "$UNPACK_DIR/up_param.bin" && ! -f "$UNPACK_DIR/param.bin" ]]; then
@@ -19,7 +16,7 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
             LZ4_FILE=$(tar -tf "$BL_TAR" | grep -E '^(up_param|param)\.bin\.lz4$' | head -n1)
 
             if [[ -z "$LZ4_FILE" ]]; then
-                echo "ERROR: No param file found inside $BL_TAR"
+                LOGE "ERROR: No param file found inside $BL_TAR"
                 exit 1
             fi
 
@@ -66,7 +63,7 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
     output_lpm="$WORK_DIR/$PARAM_NAME/lpm.jpg"
 
     if [[ ! -f "$orig_lpm" ]]; then
-        echo "ERROR: Original lpm.jpg not found at $orig_lpm"
+        LOGE "ERROR: Original lpm.jpg not found at $orig_lpm"
         exit 1
     fi
 
@@ -80,11 +77,12 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "essi" || $TARGET_SINGLE_SYSTEM_IMAGE == "e
     # Set permissions
     chmod 444 "$WORK_DIR/$PARAM_NAME/"*
 
-    echo "Param patch applied successfully."
+    LOG "Param patch applied successfully."
     else {
-        echo "Target model ${TARGET_ASSERT_MODEL[@]} does not match firmware model $MODEL, skipping param patch"
+        LOG "Target model ${TARGET_ASSERT_MODEL[@]} does not match firmware model $MODEL, skipping param patch"
     }
-fi
+    LOG_STEP_OUT
+    fi
 else
-    echo 'Non-Exynos target detected, skipping param patch...'
+    LOG 'Non-Exynos target detected, skipping param patch...'
 fi
