@@ -102,21 +102,21 @@ GENERATE_LPMAKE_OPT()
 FILE_NAME="ArtisanROM_${ROM_CODENAME}_${ROM_VERSION}_${TARGET_CODENAME}"
 # ]
 
-echo "Set up tmp dir"
+LOG "Set up tmp dir"
 mkdir -p "$TMP_DIR"
 
 while read -r i; do
     PARTITION=$(basename "$i")
      if [[ "$PARTITION" == "param" || "$PARTITION" == "up_param" ]]; then
-        echo "Building $PARTITION.bin"
+        LOG "Building $PARTITION.bin"
         [ -f "$TMP_DIR/$PARTITION.bin" ] && rm -f "$TMP_DIR/$PARTITION.bin"
         cd "$WORK_DIR/$PARTITION" ; tar -c --format=gnu -f "$TMP_DIR/$PARTITION.bin" -- *.jpg ; cd - &> /dev/null
-        echo "Compressing $PARTITION.bin"
+        LOG "Compressing $PARTITION.bin"
         lz4 -B6 --content-size -q --rm "$TMP_DIR/$PARTITION.bin" "$TMP_DIR/$PARTITION.bin.lz4" &> /dev/null
-        echo "Creating an odin BL Package"
+        LOG "Creating an odin BL Package"
         [ -f "$OUT_DIR/BL_param_patch.tar" ] && rm -f "$OUT_DIR/$FILE_NAME.tar"
         cd $TMP_DIR; tar -c --format=gnu -f "$OUT_DIR/BL_param_patch.tar" -- $PARTITION.bin.lz4 ; cd - &> /dev/null
-        echo "Creating checksum for the BL package"
+        LOG "Creating checksum for the BL package"
         CHECKSUM="$(md5sum "$OUT_DIR/BL_param_patch.tar" | cut -d " " -f 1 | sed 's/ //')"
             echo -n "$CHECKSUM" >> "$OUT_DIR/BL_param_patch.tar" \
             && echo "  BL_param_patch.tar" >> "$OUT_DIR/BL_param_patch.tar" \
@@ -129,7 +129,7 @@ while read -r i; do
     [ -f "$TMP_DIR/$PARTITION.img" ] && rm -f "$TMP_DIR/$PARTITION.img"
     [ -f "$WORK_DIR/$PARTITION.img" ] && rm -f "$WORK_DIR/$PARTITION.img"
 
-    echo "Building $PARTITION.img"
+    LOG "Building $PARTITION.img"
     if [[ "$PARTITION" == "system" || "$PARTITION" == "prism" || "$PARTITION" == "optics" ]]; then
         FILESYSTEM_TYPE="ext4"
     else
@@ -153,31 +153,31 @@ fi
 
 while read -r i; do
     IMG="$(basename "$i")"
-    echo "Copying $IMG"
+    LOG "Copying $IMG"
     [ -f "$TMP_DIR/$IMG" ] && rm -f "$TMP_DIR/$IMG"
     cp -a --preserve=all "$i" "$TMP_DIR/$IMG"
 done <<< "$(find "$WORK_DIR/kernel" -mindepth 1 -maxdepth 1 -type f -name "*.img")"
 
 if [ "$NO_COMPRESSION" = "false" ]; then
     for i in "$TMP_DIR"/*.img; do
-        echo "Compressing $(basename "$i")"
+        LOG "Compressing $(basename "$i")"
         [ -f "$i.lz4" ] && rm -f "$i.lz4"
         lz4 -B6 --content-size -q --rm "$i" "$i.lz4" &> /dev/null
     done
 fi
 
-echo "Creating tar"
+LOG "Creating tar"
 [ -f "$OUT_DIR/$FILE_NAME.tar" ] && rm -f "$OUT_DIR/$FILE_NAME.tar"
 cd "$TMP_DIR" ; tar -c --format=gnu -f "$OUT_DIR/$FILE_NAME.tar" -- *.lz4 ; cd - &> /dev/null
 
-echo "Generating checksum"
+LOG "Generating checksum"
 [ -f "$OUT_DIR/$FILE_NAME.tar.md5" ] && rm -f "$OUT_DIR/$FILE_NAME.tar.md5"
 CHECKSUM="$(md5sum "$OUT_DIR/$FILE_NAME.tar" | cut -d " " -f 1 | sed 's/ //')"
 echo -n "$CHECKSUM" >> "$OUT_DIR/$FILE_NAME.tar" \
     && echo "  $FILE_NAME.tar" >> "$OUT_DIR/$FILE_NAME.tar" \
     && mv "$OUT_DIR/$FILE_NAME.tar" "$OUT_DIR/$FILE_NAME.tar.md5"
 
-echo "Deleting tmp dir"
+LOG "Deleting tmp dir"
 rm -rf "$TMP_DIR"
 
 exit 0

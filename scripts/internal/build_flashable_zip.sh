@@ -16,84 +16,102 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# shellcheck disable=SC2162
-
-set -Eeo pipefail
-
 # [
-GET_PROP()
+source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
+
+SOURCE_FINGERPRINT="$(GET_PROP "$WORK_DIR/system/system/build.prop" "ro.system.build.fingerprint")"
+SOURCE_FINGERPRINT="${SOURCE_FINGERPRINT//$(GET_PROP "$FW_DIR/$SOURCE_FIRMWARE_PATH/system/system/build.prop" "ro.build.product")/$(GET_PROP "$FW_DIR/$SOURCE_FIRMWARE_PATH/vendor/build.prop" "ro.product.vendor.device")}"
+TARGET_FINGERPRINT="$(GET_PROP "$WORK_DIR/vendor/build.prop" "ro.vendor.build.fingerprint")"
+TARGET_FINGERPRINT="${TARGET_FINGERPRINT//$(GET_PROP "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/build.prop" "ro.build.product")/$(GET_PROP "$FW_DIR/$TARGET_FIRMWARE_PATH/vendor/build.prop" "ro.product.vendor.device")}"
+
+TMP_DIR="$OUT_DIR/zip"
+
+ROM_STATUS="UNOFFICIAL"
+$ROM_IS_OFFICIAL && ROM_STATUS="OFFICIAL"
+
+ZIP_FILE_SUFFIX="-sign.zip"
+$DEBUG && ! $ROM_IS_OFFICIAL && ZIP_FILE_SUFFIX=".zip"
+
+FILE_NAME="ArtisanROM_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
+while [ -f "$OUT_DIR/$FILE_NAME" ]; do
+    INCREMENTAL=$((INCREMENTAL + 1))
+    FILE_NAME="ArtisanROM_${ROM_VERSION}_$(date +%Y%m%d)-${INCREMENTAL}_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
+done
+
+PRIVATE_KEY_PATH="$SRC_DIR/security/"
+PUBLIC_KEY_PATH="$SRC_DIR/security/"
+if $ROM_IS_OFFICIAL; then
+    PRIVATE_KEY_PATH+="extremerom"
+    PUBLIC_KEY_PATH+="extremerom"
+else
+    PRIVATE_KEY_PATH+="aosp"
+    PUBLIC_KEY_PATH+="aosp"
+fi
+PRIVATE_KEY_PATH+="_platform.pk8"
+PUBLIC_KEY_PATH+="_platform.x509.pem"
+
+trap 'rm -rf "$TMP_DIR"' EXIT INT
+
+# https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_super_image.py#72
+BUILD_SUPER_EMPTY()
 {
-    local PROP="$1"
-    local FILE="$2"
+    local CMD
 
-    if [ ! -f "$FILE" ]; then
-        echo "File not found: $FILE"
-        exit 1
+    CMD="lpmake"
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_super_image.py#75
+    CMD+=" --metadata-size \"65536\""
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/core/config.mk#1033
+    CMD+=" --super-name \"super\""
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_super_image.py#85
+    CMD+=" --metadata-slots \"2\""
+    CMD+=" --device \"super:$TARGET_SUPER_PARTITION_SIZE\""
+    CMD+=" --group \"$TARGET_SUPER_GROUP_NAME:$TARGET_SUPER_GROUP_SIZE\""
+    if [ -f "$TMP_DIR/system.img" ]; then
+        CMD+=" --partition \"system:readonly:0:$TARGET_SUPER_GROUP_NAME\""
     fi
+    if [ -f "$TMP_DIR/vendor.img" ]; then
+        CMD+=" --partition \"vendor:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/product.img" ]; then
+        CMD+=" --partition \"product:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/system_ext.img" ]; then
+        CMD+=" --partition \"system_ext:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/odm.img" ]; then
+        CMD+=" --partition \"odm:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/vendor_dlkm.img" ]; then
+        CMD+=" --partition \"vendor_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/odm_dlkm.img" ]; then
+        CMD+=" --partition \"odm_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    if [ -f "$TMP_DIR/system_dlkm.img" ]; then
+        CMD+=" --partition \"system_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME\""
+    fi
+    CMD+=" --output \"$TMP_DIR/unsparse_super_empty.img\""
 
-    grep "^$PROP=" "$FILE" | cut -d "=" -f2-
+    EVAL "$CMD" || exit 1
 }
 
-PRINT_HEADER()
+GENERATE_BUILD_INFO()
 {
-    local ONEUI_VERSION
-    local MAJOR
-    local MINOR
-    local PATCH
+    local BUILD_INFO_FILE="$TMP_DIR/build_info.txt"
 
-    ONEUI_VERSION="$(GET_PROP "ro.build.version.oneui" "$WORK_DIR/system/system/build.prop")"
-    MAJOR=$(echo "scale=0; $ONEUI_VERSION / 10000" | bc -l)
-    MINOR=$(echo "scale=0; $ONEUI_VERSION % 10000 / 100" | bc -l)
-    PATCH=$(echo "scale=0; $ONEUI_VERSION % 100" | bc -l)
-    if [[ "$PATCH" != "0" ]]; then
-        ONEUI_VERSION="$MAJOR.$MINOR.$PATCH"
-    else
-        ONEUI_VERSION="$MAJOR.$MINOR"
-    fi
-
-    echo    'ui_print(" ");'
-    echo    'ui_print("****************************************");'
-    echo -n 'ui_print("'
-    echo -n "ArtisanROM $ROM_CODENAME $ROM_VERSION for $TARGET_NAME"
-    echo    '");'
-    echo    'ui_print("ArtisanROM by Android-Artisan @XDAforums");'
-    echo    'ui_print("ROM base by ExtremeXT @XDAforums");'
-    echo    'ui_print("Build system coded by salvo_giangri @XDAforums");'
-    echo    'ui_print("****************************************");'
-    echo -n 'ui_print("'
-    echo -n "One UI version: $ONEUI_VERSION"
-    echo    '");'
-    echo -n 'ui_print("'
-    echo -n "Source: $(GET_PROP "ro.system.build.fingerprint" "$WORK_DIR/system/system/build.prop")"
-    echo    '");'
-    echo -n 'ui_print("'
-    echo -n "Target: $(GET_PROP "ro.vendor.build.fingerprint" "$WORK_DIR/vendor/build.prop")"
-    echo    '");'
-    echo    'ui_print("****************************************");'
+    {
+        echo "device=$TARGET_CODENAME"
+        echo "version=$ROM_VERSION"
+        echo "timestamp=$ROM_BUILD_TIMESTAMP"
+        echo "security_patch_version=$(GET_PROP "system" "ro.build.version.security_patch")"
+    } > "$BUILD_INFO_FILE"
 }
 
-GET_SPARSE_IMG_SIZE()
-{
-    local FILE_INFO
-    local BLOCKS
-    local BLOCK_SIZE
-
-    FILE_INFO=$(file -b "$1")
-    if [ -z "$FILE_INFO" ] || [[ "$FILE_INFO" != "Android"* ]]; then
-        exit 1
-    fi
-
-    BLOCKS=$(echo "$FILE_INFO" | grep -o "[[:digit:]]*" | sed "3p;d")
-    BLOCK_SIZE=$(echo "$FILE_INFO" | grep -o "[[:digit:]]*" | sed "4p;d")
-
-    echo "$BLOCKS * $BLOCK_SIZE" | bc -l
-}
-
+# https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#4042
 GENERATE_OP_LIST()
 {
     local OP_LIST_FILE="$TMP_DIR/dynamic_partitions_op_list"
-    local PART_SIZE=0
-    local OCCUPIED_SPACE=0
+
     local HAS_SYSTEM=false
     local HAS_VENDOR=false
     local HAS_PRODUCT=false
@@ -112,8 +130,9 @@ GENERATE_OP_LIST()
     [ -f "$TMP_DIR/odm_dlkm.img" ] && HAS_ODM_DLKM=true
     [ -f "$TMP_DIR/system_dlkm.img" ] && HAS_SYSTEM_DLKM=true
 
-    [ -f "$OP_LIST_FILE" ] && rm -f "$OP_LIST_FILE"
-    touch "$OP_LIST_FILE"
+    local PARTITION_SIZE=0
+    local OCCUPIED_SPACE=0
+
     {
         echo "# Remove all existing dynamic partitions and groups before applying full OTA"
         echo "remove_all_groups"
@@ -136,122 +155,111 @@ GENERATE_OP_LIST()
         $HAS_SYSTEM_DLKM && echo "# Add partition system_dlkm to group $TARGET_SUPER_GROUP_NAME"
         $HAS_SYSTEM_DLKM && echo "add system_dlkm $TARGET_SUPER_GROUP_NAME"
         if $HAS_SYSTEM; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/system.img")"
-            echo "# Grow partition system from 0 to $PART_SIZE"
-            echo "resize system $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/system.img")"
+            echo "# Grow partition system from 0 to $PARTITION_SIZE"
+            echo "resize system $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_VENDOR; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/vendor.img")"
-            echo "# Grow partition vendor from 0 to $PART_SIZE"
-            echo "resize vendor $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/vendor.img")"
+            echo "# Grow partition vendor from 0 to $PARTITION_SIZE"
+            echo "resize vendor $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_PRODUCT; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/product.img")"
-            echo "# Grow partition product from 0 to $PART_SIZE"
-            echo "resize product $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/product.img")"
+            echo "# Grow partition product from 0 to $PARTITION_SIZE"
+            echo "resize product $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_SYSTEM_EXT; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/system_ext.img")"
-            echo "# Grow partition system_ext from 0 to $PART_SIZE"
-            echo "resize system_ext $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/system_ext.img")"
+            echo "# Grow partition system_ext from 0 to $PARTITION_SIZE"
+            echo "resize system_ext $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_ODM; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/odm.img")"
-            echo "# Grow partition odm from 0 to $PART_SIZE"
-            echo "resize odm $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/odm.img")"
+            echo "# Grow partition odm from 0 to $PARTITION_SIZE"
+            echo "resize odm $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_VENDOR_DLKM; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/vendor_dlkm.img")"
-            echo "# Grow partition vendor_dlkm from 0 to $PART_SIZE"
-            echo "resize vendor_dlkm $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/vendor_dlkm.img")"
+            echo "# Grow partition vendor_dlkm from 0 to $PARTITION_SIZE"
+            echo "resize vendor_dlkm $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_ODM_DLKM; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/odm_dlkm.img")"
-            echo "# Grow partition odm_dlkm from 0 to $PART_SIZE"
-            echo "resize odm_dlkm $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/odm_dlkm.img")"
+            echo "# Grow partition odm_dlkm from 0 to $PARTITION_SIZE"
+            echo "resize odm_dlkm $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
         if $HAS_SYSTEM_DLKM; then
-            PART_SIZE="$(GET_SPARSE_IMG_SIZE "$TMP_DIR/system_dlkm.img")"
-            echo "# Grow partition system_dlkm from 0 to $PART_SIZE"
-            echo "resize system_dlkm $PART_SIZE"
-            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PART_SIZE))
+            PARTITION_SIZE="$(GET_IMAGE_SIZE "$TMP_DIR/system_dlkm.img")"
+            echo "# Grow partition system_dlkm from 0 to $PARTITION_SIZE"
+            echo "resize system_dlkm $PARTITION_SIZE"
+            OCCUPIED_SPACE=$((OCCUPIED_SPACE + PARTITION_SIZE))
         fi
-    } >> "$OP_LIST_FILE"
+    } > "$OP_LIST_FILE"
 
     if [[ "$OCCUPIED_SPACE" -gt "$TARGET_SUPER_GROUP_SIZE" ]]; then
-        echo "OS size ($OCCUPIED_SPACE) is bigger than target group size ($TARGET_SUPER_GROUP_SIZE)."
+        LOGE "OS size ($OCCUPIED_SPACE) is bigger than the target group size ($TARGET_SUPER_GROUP_SIZE)"
         exit 1
     fi
-
-    true
 }
 
-GENERATE_LPMAKE_OPT()
+GENERATE_OTA_METADATA()
 {
-    local OPT
-    local HAS_SYSTEM=false
-    local HAS_VENDOR=false
-    local HAS_PRODUCT=false
-    local HAS_SYSTEM_EXT=false
-    local HAS_ODM=false
-    local HAS_VENDOR_DLKM=false
-    local HAS_ODM_DLKM=false
-    local HAS_SYSTEM_DLKM=false
+    local PROTO_FILE="$SRC_DIR/external/android-tools/vendor/build/tools/releasetools/ota_metadata.proto"
 
-    [ -f "$TMP_DIR/system.img" ] && HAS_SYSTEM=true
-    [ -f "$TMP_DIR/vendor.img" ] && HAS_VENDOR=true
-    [ -f "$TMP_DIR/product.img" ] && HAS_PRODUCT=true
-    [ -f "$TMP_DIR/system_ext.img" ] && HAS_SYSTEM_EXT=true
-    [ -f "$TMP_DIR/odm.img" ] && HAS_ODM=true
-    [ -f "$TMP_DIR/vendor_dlkm.img" ] && HAS_VENDOR_DLKM=true
-    [ -f "$TMP_DIR/odm_dlkm.img" ] && HAS_ODM_DLKM=true
-    [ -f "$TMP_DIR/system_dlkm.img" ] && HAS_SYSTEM_DLKM=true
+    local INCREMENTAL
+    local RELEASE
+    local SECURITY_PATCH_LEVEL
+    local TIMESTAMP
 
-    OPT+=" -o $TMP_DIR/unsparse_super_empty.img"
-    OPT+=" --device-size $TARGET_SUPER_PARTITION_SIZE"
-    OPT+=" --metadata-size 65536 --metadata-slots 2"
-    OPT+=" -g $TARGET_SUPER_GROUP_NAME:$TARGET_SUPER_GROUP_SIZE"
+    INCREMENTAL="$(GET_PROP "system" "ro.build.version.incremental")"
+    RELEASE="$(GET_PROP "system" "ro.build.version.release")"
+    SECURITY_PATCH_LEVEL="$(GET_PROP "system" "ro.build.version.security_patch")"
+    TIMESTAMP="$(GET_PROP "system" "ro.build.date.utc")"
 
-    if $HAS_SYSTEM; then
-        OPT+=" -p system:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_VENDOR; then
-        OPT+=" -p vendor:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_PRODUCT; then
-        OPT+=" -p product:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_SYSTEM_EXT; then
-        OPT+=" -p system_ext:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_ODM; then
-        OPT+=" -p odm:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_VENDOR_DLKM; then
-        OPT+=" -p vendor_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_ODM_DLKM; then
-        OPT+=" -p odm_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME"
-    fi
-    if $HAS_SYSTEM_DLKM; then
-        OPT+=" -p system_dlkm:readonly:0:$TARGET_SUPER_GROUP_NAME"
+    mkdir -p "$TMP_DIR/META-INF/com/android"
+
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/ota_utils.py#259
+    if [ -f "$PROTO_FILE" ]; then
+        local MESSAGE
+
+        MESSAGE+="type: BLOCK"
+        MESSAGE+=", precondition: {device: \\\"$TARGET_CODENAME\\\"}"
+        MESSAGE+=", postcondition: {device: \\\"$TARGET_CODENAME\\\""
+        MESSAGE+=", build: \\\"$SOURCE_FINGERPRINT\\\""
+        MESSAGE+=", build_incremental: \\\"$INCREMENTAL\\\""
+        MESSAGE+=", timestamp: $TIMESTAMP"
+        MESSAGE+=", sdk_level: \\\"$RELEASE\\\""
+        MESSAGE+=", security_patch_level: \\\"$SECURITY_PATCH_LEVEL\\\"}"
+
+        EVAL "protoc --encode=build.tools.releasetools.OtaMetadata --proto_path=\"$(dirname "$PROTO_FILE")\" \"$PROTO_FILE\" <<< \"$MESSAGE\" > \"$TMP_DIR/META-INF/com/android/metadata.pb\"" || exit 1
     fi
 
-    echo "$OPT"
+    # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/ota_utils.py#317
+    {
+        echo "ota-required-cache=0"
+        echo "ota-type=BLOCK"
+        echo "post-build=$SOURCE_FINGERPRINT"
+        echo "post-build-incremental=$INCREMENTAL"
+        echo "post-sdk-level=$RELEASE"
+        echo "post-security-patch-level=$SECURITY_PATCH_LEVEL"
+        echo "post-timestamp=$TIMESTAMP"
+        echo "pre-device=$TARGET_CODENAME"
+    } > "$TMP_DIR/META-INF/com/android/metadata"
 }
 
 GENERATE_UPDATER_SCRIPT()
 {
-    local BROTLI_EXTENSION
-    [ "$NO_COMPRESSION" = "false" ] && BROTLI_EXTENSION=".br"
     local SCRIPT_FILE="$TMP_DIR/META-INF/com/google/android/updater-script"
+    local BROTLI_EXTENSION=".br"
+
     local PARTITION_COUNT=0
     local HAS_UP_PARAM=false
     local HAS_BOOT=false
@@ -291,13 +299,10 @@ GENERATE_UPDATER_SCRIPT()
     [ -f "$TMP_DIR/optics.new.dat${BROTLI_EXTENSION}" ] && HAS_OPTICS=true
     [ -f "$SRC_DIR/target/$TARGET_CODENAME/postinstall.edify" ] && HAS_POST_INSTALL=true
 
-    [ -f "$SCRIPT_FILE" ] && rm -f "$SCRIPT_FILE"
-    touch "$SCRIPT_FILE"
     {
         if [ -n "$TARGET_ASSERT_MODEL" ]; then
-            IFS=':' read -a TARGET_ASSERT_MODEL <<< "$TARGET_ASSERT_MODEL"
-            for i in "${TARGET_ASSERT_MODEL[@]}"
-            do
+            IFS=':' read -r -a TARGET_ASSERT_MODEL <<< "$TARGET_ASSERT_MODEL"
+            for i in "${TARGET_ASSERT_MODEL[@]}"; do
                 echo -n 'getprop("ro.boot.em.model") == "'
                 echo -n "$i"
                 echo -n '" || '
@@ -312,24 +317,40 @@ GENERATE_UPDATER_SCRIPT()
             echo -n "$TARGET_CODENAME"
             echo    '\" devices; this is a \"" + getprop("ro.product.device") + "\".");'
         fi
+        if $TARGET_REQUIRES_SPECIFIC_FIRMWARE; then
+            TARGET_FW_VERSION=$(GET_PROP "$WORK_DIR/vendor/build.prop" ro.vendor.build.version.incremental)
+            [[ "$TARGET_SUPPORTED_FIRMWARES" == "none" ]] \
+                && TARGET_SUPPORTED_FIRMWARES=("$TARGET_FW_VERSION") \
+                || TARGET_SUPPORTED_FIRMWARES+=("$TARGET_FW_VERSION")
+            BL=""
+            for i in "${TARGET_SUPPORTED_FIRMWARES[@]}"; do
+                BL+="getprop(\"ro.bootloader\") == \"$i\" || "
+            done
+            BL=""${BL% || }""
+
+            echo -e "ifelse($BL,\"\","
+            echo -e 'abort("E3004: Your firmware is not supported. Please flash included Odin pack or wait for a new release.' 
+            echo -e 'Do not open issues on GitHub!"););'
+        fi
 
         PRINT_HEADER
 
         if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
+            # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#4007
             echo -e "\n# --- Start patching dynamic partitions ---\n\n"
             echo -e "# Update dynamic partition metadata\n"
             echo -n 'assert(update_dynamic_partitions(package_extract_file("dynamic_partitions_op_list")'
             if $HAS_SUPER_EMPTY; then
+                # https://github.com/LineageOS/android_build/commit/98549f6893c3a93057e2d4cdd1015a93e9473b16
+                # https://github.com/LineageOS/android_bootable_deprecated-ota/commit/e97be4333bd3824b8561c9637e9e6de28bc29da0
                 echo -n ', package_extract_file("unsparse_super_empty.img")'
             fi
             echo    '));'
         fi
+        echo    'show_progress(1, 200);'
         if $HAS_SYSTEM; then
             echo -e "\n# Patch partition system\n"
             echo    'ui_print("Patching system image unconditionally...");'
-            echo -n 'show_progress(0.'
-            echo "9 - $PARTITION_COUNT" | bc -l | tr -d "\n"
-            echo    '00000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("system"), '
@@ -346,7 +367,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_VENDOR; then
             echo -e "\n# Patch partition vendor\n"
             echo    'ui_print("Patching vendor image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("vendor"), '
@@ -363,7 +383,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_PRODUCT; then
             echo -e "\n# Patch partition product\n"
             echo    'ui_print("Patching product image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("product"), '
@@ -380,7 +399,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_SYSTEM_EXT; then
             echo -e "\n# Patch partition system_ext\n"
             echo    'ui_print("Patching system_ext image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("system_ext"), '
@@ -397,7 +415,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_ODM; then
             echo -e "\n# Patch partition odm\n"
             echo    'ui_print("Patching odm image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("odm"), '
@@ -414,7 +431,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_VENDOR_DLKM; then
             echo -e "\n# Patch partition vendor_dlkm\n"
             echo    'ui_print("Patching vendor_dlkm image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("vendor_dlkm"), '
@@ -431,7 +447,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_ODM_DLKM; then
             echo -e "\n# Patch partition odm_dlkm\n"
             echo    'ui_print("Patching odm_dlkm image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("odm_dlkm"), '
@@ -448,7 +463,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_SYSTEM_DLKM; then
             echo -e "\n# Patch partition system_dlkm\n"
             echo    'ui_print("Patching system_dlkm image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
                 echo -n    'map_partition("system_dlkm"), '
@@ -465,7 +479,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_PRISM; then
             echo -e "\n# Patch partition prism\n"
             echo    'ui_print("Patching prism image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             echo -n    '"'
             echo -n    "$TARGET_BOOT_DEVICE_PATH"
@@ -478,7 +491,6 @@ GENERATE_UPDATER_SCRIPT()
         if $HAS_OPTICS; then
             echo -e "\n# Patch partition optics\n"
             echo    'ui_print("Patching optics image unconditionally...");'
-            echo    'show_progress(0.100000, 0);'
             echo -n    'block_image_update('
             echo -n    '"'
             echo -n    "$TARGET_BOOT_DEVICE_PATH"
@@ -493,6 +505,7 @@ GENERATE_UPDATER_SCRIPT()
         else
             echo -e "\n"
         fi
+        echo    'set_progress(0);'
         if $HAS_DTB; then
             echo    'ui_print("Full Patching dtb.img img...");'
             echo -n 'package_extract_file("dtb.img", "'
@@ -531,121 +544,178 @@ GENERATE_UPDATER_SCRIPT()
         fi
 
         if $HAS_POST_INSTALL; then
+            echo -e "\n"
+            echo    'ui_print("Executing post-install tasks...");'
             cat "$SRC_DIR/target/$TARGET_CODENAME/postinstall.edify"
         fi
 
-        echo    'set_progress(1.000000);'
-        echo    'ui_print("****************************************");'
+        echo -e "\n"
+        echo    'ui_print("Cleaning up...");'
+        echo    'package_extract_file("cleanup.sh", "/tmp/cleanup.sh");'
+        echo    'set_metadata("/tmp/cleanup.sh", "uid", 0, "gid", 0, "dmode", 0755, "fmode", 0755);'
+        echo    'run_program("/tmp/cleanup.sh");'
+
+        echo -e "\n"
+        echo    'set_progress(1);'
+        echo    'ui_print("****************************************************");'
         echo    'ui_print(" ");'
-    } >> "$SCRIPT_FILE"
-
-    true
+    } > "$SCRIPT_FILE"
 }
 
-GENERATE_BUILD_INFO()
+PRINT_HEADER()
 {
-    local BUILD_INFO_FILE="$TMP_DIR/build_info.txt"
+    local ONEUI_VERSION
+    local MAJOR
+    local MINOR
+    local PATCH
 
-    [ -f "$BUILD_INFO_FILE" ] && rm -f "$BUILD_INFO_FILE"
-    touch "$BUILD_INFO_FILE"
-    {
-        echo "device=$TARGET_CODENAME"
-        echo "version=$ROM_VERSION"
-        echo "timestamp=$ROM_BUILD_TIMESTAMP"
-        echo "security_patch_version=$(GET_PROP "ro.build.version.security_patch" "$WORK_DIR/system/system/build.prop")"
-    } >> "$BUILD_INFO_FILE"
+    ONEUI_VERSION="$(GET_PROP "system" "ro.build.version.oneui")"
+    MAJOR=$(bc -l <<< "scale=0; $ONEUI_VERSION / 10000")
+    MINOR=$(bc -l <<< "scale=0; $ONEUI_VERSION % 10000 / 100")
+    PATCH=$(bc -l <<< "scale=0; $ONEUI_VERSION % 100")
+    if [[ "$PATCH" != "0" ]]; then
+        ONEUI_VERSION="$MAJOR.$MINOR.$PATCH"
+    else
+        ONEUI_VERSION="$MAJOR.$MINOR"
+    fi
 
-    true
+    echo    'ui_print(" ");'
+    echo    'ui_print("****************************************************");'
+    echo -n 'ui_print("'
+    echo -n "Welcome to ArtisanROM $ROM_CODENAME $ROM_VERSION for $TARGET_NAME!"
+    echo    '");'
+    echo    'ui_print("ArtisanROM developed by Android-Artisan @XDAforums");'
+    echo    'ui_print("Initial UN1CA and ExtremeROM build system coded by salvo_giangri and ExtremeXT @XDAforums");'
+    echo    'ui_print("Special thanks to all ExtremeROM and ArtisanROM Maintainers, Contribuitors and Testers");'
+    echo    'ui_print("****************************************************");'
+    echo -n 'ui_print("'
+    echo -n "One UI version: $ONEUI_VERSION"
+    echo    '");'
+    echo -n 'ui_print("'
+    echo -n "Source: $SOURCE_FINGERPRINT"
+    echo    '");'
+    echo -n 'ui_print("'
+    echo -n "Target: $TARGET_FINGERPRINT"
+    echo    '");'
+    echo    'ui_print("****************************************************");'
+    echo    'ui_print("After installation, it is highly recommended to FORMAT DATA as follows:");'
+    echo    'ui_print("     Wipe -> Format Data");'
+    echo    'ui_print("Hint: FORMAT, not WIPE or FACTORY RESET!");'
+    echo    'ui_print(" ");'
+    echo    'ui_print("If you decide to not format, unexpected issues may occur and given support will be limited.");'
+    echo    'ui_print(" ");'
+    echo    'ui_print("If you wish to proceed with the installer, please press the Volume UP button.");'
+    echo    'ui_print("Otherwise, hold the Volume DOWN + POWER buttons for 7 seconds to force reboot.");'
+    echo    'assert(run_program("/sbin/sh", "-c", "while true; do getevent -lc 1 | grep -q -m1 '\''KEY_VOLUMEUP'\'' && exit 0; sleep 1; done"));'
+    echo    'ui_print("Volume UP detected. Proceeding!");'
+    echo    'ui_print("****************************************************");'
 }
-
-ZIP_FILE_NAME="ArtisanROM_${ROM_CODENAME}_${ROM_VERSION}_${TARGET_CODENAME}.zip"
 # ]
 
-echo "Set up tmp dir"
-mkdir -p "$TMP_DIR"
-[ -d "$TMP_DIR/META-INF/com/google/android" ] && rm -rf "$TMP_DIR/META-INF/com/google/android"
+[ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR/META-INF/com/google/android"
-cp --preserve=all "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$TMP_DIR/META-INF/com/google/android/update-binary"
+cp -a "$SRC_DIR/prebuilts/bootable/deprecated-ota/updater" "$TMP_DIR/META-INF/com/google/android/update-binary"
+mkdir -p "$TMP_DIR/scripts"
+cp -a "$SRC_DIR/prebuilts/extras/cleanup.sh" "$TMP_DIR/scripts/cleanup.sh"
 
-while read -r i; do
-    PARTITION=$(basename "$i")
-    [[ "$PARTITION" == "configs" ]] && continue
-    [[ "$PARTITION" == "kernel" ]] && continue
-    [ -f "$TMP_DIR/$PARTITION.img" ] && rm -f "$TMP_DIR/$PARTITION.img"
-    [ -f "$WORK_DIR/$PARTITION.img" ] && rm -f "$WORK_DIR/$PARTITION.img"
+LOG_STEP_IN "- Building OS partitions"
+while IFS= read -r f; do
+    PARTITION=$(basename "$f")
+    IS_VALID_PARTITION_NAME "$PARTITION" || continue
 
-    echo "Building $PARTITION.img"
-    if [[ "$PARTITION" == "system" || "$PARTITION" == "prism" || "$PARTITION" == "optics" ]]; then
-        FILESYSTEM_TYPE="ext4"
-    else
-        FILESYSTEM_TYPE="$TARGET_OS_FILE_SYSTEM"
-    fi
-    bash "$SRC_DIR/scripts/build_fs_image.sh" "$FILESYSTEM_TYPE+sparse" "$WORK_DIR/$PARTITION" \
-        "$WORK_DIR/configs/file_context-$PARTITION" "$WORK_DIR/configs/fs_config-$PARTITION" > /dev/null 2>&1
-    mv "$WORK_DIR/$PARTITION.img" "$TMP_DIR/$PARTITION.img"
-done <<< "$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -type d)"
+    (
+        LOG_STEP_IN "- Building $PARTITION.img"
+        if [[ "$PARTITION" == "prism" || "$PARTITION" == "optics" ]]; then
+            FILESYSTEM_TYPE="ext4"
+        else
+            FILESYSTEM_TYPE="$TARGET_OS_FILE_SYSTEM"
+        fi
+        "$SRC_DIR/scripts/build_fs_image.sh" "$FILESYSTEM_TYPE" \
+            -o "$TMP_DIR/$PARTITION.img" -S \
+            "$WORK_DIR/$PARTITION" "$WORK_DIR/configs/file_context-$PARTITION" "$WORK_DIR/configs/fs_config-$PARTITION" || exit 1
+        LOG_STEP_OUT
+    ) &
+done < <(find "$WORK_DIR" -maxdepth 1 -type d)
+LOG_STEP_OUT
+
+# shellcheck disable=SC2046
+wait $(jobs -p) || exit 1
 
 if [ "$TARGET_SUPER_PARTITION_SIZE" -ne 0 ]; then
-    echo "Building unsparse_super_empty.img"
-    [ -f "$TMP_DIR/unsparse_super_empty.img" ] && rm -f "$TMP_DIR/unsparse_super_empty.img"
-    CMD="lpmake $(GENERATE_LPMAKE_OPT)"
-    $CMD &> /dev/null
+    LOG "- Building unsparse_super_empty.img"
+    BUILD_SUPER_EMPTY
 
-    echo "Generating dynamic_partitions_op_list"
+    LOG "- Generating dynamic_partitions_op_list"
     GENERATE_OP_LIST
 fi
 
-while read -r i; do
-    PARTITION="$(basename "$i" | sed "s/.img//g")"
+BROTLI_QUALITY=6
+$DEBUG && BROTLI_QUALITY=0
 
-    [[ "$PARTITION" == "unsparse_super_empty" ]] && continue
+while IFS= read -r f; do
+    PARTITION="$(basename "$f" | sed "s/.img//g")"
+    IS_VALID_PARTITION_NAME "$PARTITION" || continue
 
-    if [ -f "$TMP_DIR/$PARTITION.new.dat" ] || [ -f "$TMP_DIR/$PARTITION.new.dat.br" ]; then
-        rm -f "$TMP_DIR/$PARTITION.new.dat" \
-            && rm -f "$TMP_DIR/$PARTITION.new.dat.br" \
-            && rm -f "$TMP_DIR/$PARTITION.patch.dat" \
-            && rm -f "$TMP_DIR/$PARTITION.transfer.list"
-    fi
+    (
+        LOG "- Converting $PARTITION.img to $PARTITION.new.dat"
+        EVAL "img2sdat -o \"$TMP_DIR\" \"$f\"" || exit 1
+        rm -f "$f"
 
-    echo "Converting $PARTITION.img to $PARTITION.new.dat"
-    img2sdat -o "$TMP_DIR" "$i" > /dev/null 2>&1 \
-        && rm "$i"
-    if [ "$NO_COMPRESSION" = "false" ]; then
-        echo "Compressing $PARTITION.new.dat"
-        brotli --quality=6 --output="$TMP_DIR/$PARTITION.new.dat.br" "$TMP_DIR/$PARTITION.new.dat" \
-            && rm "$TMP_DIR/$PARTITION.new.dat"
-    fi
-done <<< "$(find "$TMP_DIR" -mindepth 1 -maxdepth 1 -type f -name "*.img")"
+        LOG "- Compressing $PARTITION.new.dat"
+        # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#3585
+        EVAL "brotli --quality=\"$BROTLI_QUALITY\" --output=\"$TMP_DIR/$PARTITION.new.dat.br\" \"$TMP_DIR/$PARTITION.new.dat\"" || exit 1
+        rm -f "$TMP_DIR/$PARTITION.new.dat"
+    ) &
+done < <(find "$TMP_DIR" -maxdepth 1 -type f -name "*.img")
 
-while read -r i; do
-    IMG="$(basename "$i")"
-    echo "Copying $IMG"
-    [ -f "$TMP_DIR/$IMG" ] && rm -f "$TMP_DIR/$IMG"
-    cp -a --preserve=all "$i" "$TMP_DIR/$IMG"
-done <<< "$(find "$WORK_DIR/kernel" -mindepth 1 -maxdepth 1 -type f -name "*.img")"
+# shellcheck disable=SC2046
+wait $(jobs -p) || exit 1
+
+if [ -d "$WORK_DIR/kernel" ]; then
+    while IFS= read -r f; do
+        IMG="$(basename "$f")"
+        LOG "- Copying $IMG"
+        cp -fa "$WORK_DIR/kernel/$IMG" "$TMP_DIR/$IMG"
+    done < <(find "$WORK_DIR/kernel" -maxdepth 1 -type f -name "*.img")
+fi
 
 if [ -f "$WORK_DIR/up_param.bin" ]; then
-    echo "Copying up_param.bin"
-    cp -a "$WORK_DIR/up_param.bin" "$TMP_DIR/up_param.bin"
+    LOG "- Copying up_param.bin"
+    cp -fa "$WORK_DIR/up_param.bin" "$TMP_DIR/up_param.bin"
 fi
 
-echo "Generating updater-script"
+LOG "- Generating updater-script"
 GENERATE_UPDATER_SCRIPT
 
-echo "Generate build_info.txt"
+LOG "- Generating build_info.txt"
 GENERATE_BUILD_INFO
 
-echo "Creating zip"
-[ -f "$OUT_DIR/$ZIP_FILE_NAME" ] && rm -f "$OUT_DIR/$ZIP_FILE_NAME"
-cd "$TMP_DIR"
-if [ "$NO_COMPRESSION" = "false" ]; then
-    zip -rq ../$ZIP_FILE_NAME ./*
-else
-    zip -rq0 --store ../$ZIP_FILE_NAME ./*
-fi
-cd - &> /dev/null
+LOG "- Generating OTA metadata"
+GENERATE_OTA_METADATA
 
-echo "Deleting tmp dir"
-rm -rf "$TMP_DIR"
+LOG "- Creating zip"
+EVAL "rm -f \"$OUT_DIR/rom.zip\"" || exit 1
+pushd "$TMP_DIR" > /dev/null
+
+# 1. Compressed files (everything except zips, special dat files, META-INF)
+find . -type f ! -name "*.new.dat.br" ! -name "*.patch.dat" > compressed.txt
+
+# 2. Stored files (special dat files + META-INF folder)
+find . -type f \( -name "*.new.dat.br" -o -name "*.patch.dat" -o -name "META-INF" \) > stored.txt
+META_INF="./META-INF"
+
+# Add batches
+EVAL "7z a -tzip -mx=9 -mmt=$(nproc --all) \"$TMP_DIR/rom.zip\" @\"compressed.txt\""
+EVAL "7z a -tzip -mx=0 -mmt=$(nproc --all) \"$TMP_DIR/rom.zip\" @\"stored.txt\" \"$META_INF\""
+
+if ! $DEBUG; then
+    LOG "- Signing zip"
+    EVAL "signapk -w \"$PUBLIC_KEY_PATH\" \"$PRIVATE_KEY_PATH\" \"$TMP_DIR/rom.zip\" \"$OUT_DIR/$FILE_NAME\"" || exit 1
+    rm -f "$TMP_DIR/rom.zip"
+else
+    mv -f "$TMP_DIR/rom.zip" "$OUT_DIR/$FILE_NAME"
+fi
+
+popd > /dev/null
 
 exit 0

@@ -32,6 +32,6 @@ if ${TARGET_HAS_QHD_DISPLAY}; then
     "
     for blob in $BLOBS_LIST
     do
-        ADD_TO_WORK_DIR "a54xxxxxx" "system" "$blob"
+        ADD_TO_WORK_DIR "a54xxx" "system" "$blob"
     done
 fi
