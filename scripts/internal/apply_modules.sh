@@ -20,6 +20,7 @@ set -e
 
 #[
 source "$SRC_DIR/scripts/utils/module_utils.sh" || exit 1
+SKIP_PATCH=$(jq -r '.SkipPatch[]' tmp/skip_patch.json)
 
 APPLY_MODULE()
 {
@@ -135,6 +136,14 @@ elif [ ! -d "$1" ]; then
 fi
 
 while IFS= read -r f; do
+    MOD_ID="$(basename "$f")"
+    for skip_name in "${SKIP_PATCH[@]}"; do
+        if [[ "$MOD_ID" == "$skip_name" ]]; then
+            MODNAME="$(grep "^name" "$f/module.prop" | sed "s/name=//")"
+            LOGW "Skipping: $MODNAME"
+            continue 2
+        fi
+    done
     APPLY_MODULE "$f"
 done < <(find "$1" -mindepth 1 -maxdepth 1 -type d | sort)
 
