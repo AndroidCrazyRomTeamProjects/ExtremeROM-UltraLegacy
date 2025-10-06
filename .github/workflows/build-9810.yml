@@ -87,6 +87,8 @@ jobs:
 
       - name: Build ROM
         run: |
+          mkdir -p tmp
+          jq -n --arg skip_patch "skip_patch" '{SkipPatch:[ "param_patch"]}' > tmp/skip_patch.json
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh --force
 
