@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [STARLTE, STAR2LTE, CROWNLTE, R7N]
+        target: [starlte, star2lte, crownlte, r7n]
 
     steps:
 
@@ -126,10 +126,10 @@ jobs:
 
           # 3. Choose correct GoFile folder
           case "${{ matrix.target }}" in
-            "STARLTE")    FOLDER_ID="$GOFILE_FOLDER_ID_STARLTE" ;;
-            "STAR2LTE")   FOLDER_ID="$GOFILE_FOLDER_ID_STAR2LTE" ;;
-            "CROWNLTE")   FOLDER_ID="$GOFILE_FOLDER_ID_CROWNLTE" ;;
-            "R7N")        FOLDER_ID="$GOFILE_FOLDER_ID_R7N" ;;
+            "starlte")    FOLDER_ID="$GOFILE_FOLDER_ID_STARLTE" ;;
+            "star2lte")   FOLDER_ID="$GOFILE_FOLDER_ID_STAR2LTE" ;;
+            "crownlte")   FOLDER_ID="$GOFILE_FOLDER_ID_CROWNLTE" ;;
+            "r7n")        FOLDER_ID="$GOFILE_FOLDER_ID_R7N" ;;
             *) echo "Unknown device: ${{ matrix.target }}" && exit 1 ;;
           esac
 
