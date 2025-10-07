@@ -1,7 +1,6 @@
 READ_AND_APPLY_CONFIGS()
 {
-    CAPITILIZED_TARHET_NAME=$(echo "$TARGET_CODENAME" | tr '[:lower:]' '[:upper:]')
-    local CONFIG_FILE="$SRC_DIR/target/$CAPITILIZED_TARHET_NAME/sff.sh"
+    local CONFIG_FILE="$SRC_DIR/target/$TARGET_CODENAME/sff.sh"
 
     if [ -f "$CONFIG_FILE" ]; then
         while read -r i; do
