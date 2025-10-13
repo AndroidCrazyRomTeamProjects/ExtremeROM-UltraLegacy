@@ -5,6 +5,12 @@
 # - DO NOT add add any parenthesis or statements (eg. "fabriccrypto" and NOT "expanttypeattribute ... (fabriccrypto)")
 # - DO NOT add unnecessary types or remove the existing ones unless they aren't necessary anymore for all devices
 
+# One UI 8.0 additions
+ENTRIES="
+heatmap_default
+heatmap_default_exec
+"
+
 # One UI 7.0 additions
 ENTRIES="
 attiqi_app
@@ -57,7 +63,7 @@ for e in $ENTRIES; do
         # the problematic entry is currently present in system_ext, check if we need to remove it
         if ! grep -q -F "(type $e)" "$WORK_DIR/vendor/etc/selinux/plat_pub_versioned.cil"; then
             # the problematic entry is not supported by the target device
-            echo "- \"$e\" SELinux entry not supported. Removing"
+            LOG "- \"$e\" SELinux entry not supported. Removing"
             sed -i "/($e)/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil"
             for a in $VENDOR_API_LIST; do
                 sed -i "/${e}_${a}/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil"
