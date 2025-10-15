@@ -22,12 +22,25 @@ if [[ "$SOURCE_PRODUCT_FIRST_API_LEVEL" != "$TARGET_PRODUCT_FIRST_API_LEVEL" ]];
 
     DECODE_APK "system" "system/framework/services.jar"
 
+    if $SOURCE_API_LEVEL == 36 then
     FTP="
     system/framework/services.jar/smali/com/android/server/SystemServer.smali
     system/framework/services.jar/smali/com/android/server/enterprise/hdm/HdmVendorController.smali
     system/framework/services.jar/smali/com/android/server/enterprise/hdm/HdmSakManager.smali
     system/framework/services.jar/smali/com/android/server/knox/dar/ddar/ta/TAProxy.smali
     "
+    else {
+    FTP="
+    system/framework/services.jar/smali/com/android/server/SystemServer.smali
+    system/framework/services.jar/smali/com/android/server/enterprise/hdm/HdmVendorController.smali
+    system/framework/services.jar/smali/com/android/server/enterprise/hdm/HdmSakManager.smali
+    system/framework/services.jar/smali/com/android/server/knox/dar/ddar/ta/TAProxy.smali
+    system/framework/services.jar/smali_classes2/com/android/server/power/PowerManagerUtil.smali
+    system/framework/services.jar/smali_classes2/com/android/server/sepunion/EngmodeService\$EngmodeTimeThread.smali
+    "
+    }
+    fi
+
     for f in $FTP; do
         sed -i \
             "s/\"MAINLINE_API_LEVEL: $SOURCE_PRODUCT_FIRST_API_LEVEL\"/\"MAINLINE_API_LEVEL: $TARGET_PRODUCT_FIRST_API_LEVEL\"/g" \
@@ -78,6 +91,7 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
     DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
     DECODE_APK "system" "system/priv-app/BiometricSetting/BiometricSetting.apk"
 
+    if $SOURCE_API_LEVEL = 36 then {
     FTP="
     system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
     system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/HidlFingerprintSensorConfig.smali
@@ -87,6 +101,19 @@ if [[ "$(GET_FP_SENSOR_TYPE "$SOURCE_FP_SENSOR_CONFIG")" != "$(GET_FP_SENSOR_TYP
     system/framework/services.jar/smali/com/android/server/biometrics/sensors/fingerprint/FingerprintUtils.smali
     system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali
     "
+    } else {
+    FTP="
+    system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/FingerprintManager.smali
+    system/framework/framework.jar/smali_classes2/android/hardware/fingerprint/HidlFingerprintSensorConfig.smali
+    system/framework/framework.jar/smali_classes5/com/samsung/android/bio/fingerprint/SemFingerprintManager.smali
+    system/framework/framework.jar/smali_classes5/com/samsung/android/bio/fingerprint/SemFingerprintManager\$Characteristics.smali
+    system/framework/framework.jar/smali_classes6/com/samsung/android/rune/InputRune.smali
+    system/framework/services.jar/smali/com/android/server/biometrics/sensors/fingerprint/FingerprintUtils.smali
+    system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/biometrics/fingerprint/FingerprintSettingsUtils.smali
+    "
+    }
+    fi
+
     for f in $FTP; do
         sed -i "s/$SOURCE_FP_SENSOR_CONFIG/$TARGET_FP_SENSOR_CONFIG/g" "$APKTOOL_DIR/$f"
     done
@@ -163,7 +190,8 @@ if [[ "$SOURCE_HFR_MODE" != "$TARGET_HFR_MODE" ]]; then
     DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
     DECODE_APK "system" "system/priv-app/SettingsProvider/SettingsProvider.apk"
     DECODE_APK "system_ext" "priv-app/SystemUI/SystemUI.apk"
-
+    
+    if $SOURCE_API_LEVEL == 36 then {
     FTP="
     system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
     system/framework/gamemanager.jar/smali/com/samsung/android/game/GameManagerService.smali
@@ -174,6 +202,19 @@ if [[ "$SOURCE_HFR_MODE" != "$TARGET_HFR_MODE" ]]; then
     system/priv-app/SettingsProvider/SettingsProvider.apk/smali/com/android/providers/settings/DatabaseHelper.smali
     system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/LsRune.smali
     "
+    } else {
+    FTP="
+    system/framework/framework.jar/smali_classes6/com/samsung/android/hardware/display/RefreshRateConfig.smali
+    system/framework/gamemanager.jar/smali/com/samsung/android/game/GameManagerService.smali
+    system/framework/secinputdev-service.jar/smali/com/samsung/android/hardware/secinputdev/SemInputDeviceManagerService.smali
+    system/framework/secinputdev-service.jar/smali/com/samsung/android/hardware/secinputdev/SemInputFeatures.smali
+    system/framework/secinputdev-service.jar/smali/com/samsung/android/hardware/secinputdev/SemInputFeaturesExtra.smali
+    system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/display/SecDisplayUtils.smali
+    system/priv-app/SettingsProvider/SettingsProvider.apk/smali/com/android/providers/settings/DatabaseHelper.smali
+    system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/LsRune.smali
+    "
+    }
+    fi
     for f in $FTP; do
         sed -i "s/\"$SOURCE_HFR_MODE\"/\"$TARGET_HFR_MODE\"/g" "$APKTOOL_DIR/$f"
     done
