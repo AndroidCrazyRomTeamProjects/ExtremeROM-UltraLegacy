@@ -61,7 +61,7 @@ LOG_STEP_IN "- Patching APKs for network speed monitoring"
 DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 DECODE_APK "system_ext" "priv-app/SystemUI/SystemUI.apk"
 
-if $SOURCE_API_LEVEL == 36 then {
+if [[ $SOURCE_API_LEVEL == 36 ]]; then
 FTP="
 system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/eternal/provider/items/NotificationsItem.smali
 system/priv-app/SecSettings/SecSettings.apk/smali_classes3/com/samsung/android/settings/notification/ConfigureNotificationMoreSettings\$1.smali
@@ -69,7 +69,7 @@ system/priv-app/SecSettings/SecSettings.apk/smali_classes3/com/samsung/android/s
 system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/Rune.smali
 system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/QpRune.smali
 "
-} else {
+else
 FTP="
 system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/eternal/provider/items/NotificationsItem.smali
 system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/settings/notification/ConfigureNotificationMoreSettings\$1.smali
@@ -77,7 +77,6 @@ system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/s
 system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/Rune.smali
 system_ext/priv-app/SystemUI/SystemUI.apk/smali/com/android/systemui/QpRune.smali
 "
-}
 fi
 
 for f in $FTP; do
